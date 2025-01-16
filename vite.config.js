@@ -13,4 +13,8 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    base: "./", // Adicionado para corrigir os caminhos no build
+    build: {
+        outDir: "dist", // Diretório onde os arquivos do build serão gerados
+    },
 });
