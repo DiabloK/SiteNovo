@@ -5,11 +5,14 @@ import { ThemeProvider } from "@/contexts/theme-context";
 
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
-import LoginPage from "@/routes/login/LoginPage"; // Tela de login
-import ProtectedRoute from "@/routes/ProtectedRoute"; // Rota protegida
+import LoginPage from "@/routes/login/LoginPage";
+import ProtectedRoute from "@/routes/ProtectedRoute";
+
+// Importando os componentes das páginas
+import Cadastro from "@/routes/dashboard/cadastro/Cadastro";
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticação
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const router = createBrowserRouter([
         {
@@ -26,11 +29,11 @@ function App() {
             children: [
                 {
                     index: true,
-                    element: <DashboardPage />,
+                    element: <DashboardPage />, // Página inicial (Dashboard)
                 },
                 {
                     path: "Cadastro",
-                    element: <h1 className="title">Cadastro</h1>,
+                    element: <Cadastro />, // Agora renderiza o componente real de Cadastro
                 },
                 {
                     path: "reports",
