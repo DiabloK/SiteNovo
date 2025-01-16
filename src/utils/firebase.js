@@ -1,9 +1,7 @@
-// Importa as funções necessárias do SDK da Web
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore"; // Firestore
-import { getDatabase } from "firebase/database";   // Realtime Database (se necessário)
+import { getFirestore } from "firebase/firestore";
 
-// Configurações do Firebase Web SDK (você forneceu isso no exemplo)
+// Configuração do Firebase (substitua pelas suas credenciais)
 const firebaseConfig = {
   apiKey: "AIzaSyARvqk1jNs9hqVRApmwBTPEoNyW4cBc12M",
   authDomain: "paymiua.firebaseapp.com",
@@ -17,8 +15,6 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializa Firestore (caso esteja usando Firestore)
+// Inicializa e exporta o Firestore
 export const db = getFirestore(app);
 
-// Inicializa Realtime Database (caso esteja usando Realtime Database)
-export const realtimeDb = getDatabase(app);

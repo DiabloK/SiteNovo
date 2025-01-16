@@ -1,22 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { isBefore, parseISO } from "date-fns"; // Utilizado para validar as datas
+import { isBefore, parseISO } from "date-fns";
+import checkProtocolo from "../../../utils/checkProtocolo";
 
 const Cadastro = () => {
     const [formData, setFormData] = useState({
         idManutencao: "",
-        protocolo: "", // Protocolo único
-        tipo: "Incidente", // Tipo de evento
-        dataInicio: "", // Data de início
-        dataPrevista: "", // Data prevista
-        observacao: "", // Observação
-        regional: "", // Regional (valores fixos)
-        pontoAcesso: "", // Ponto de Acesso
+        protocolo: "",
+        tipo: "Incidente",
+        dataInicio: "",
+        dataPrevista: "",
+        observacao: "",
+        regional: "",
+        pontoAcesso: "",
         total_afetados: 0,
         whatsapp: false,
         email: false,
     });
+
+    const [pontosAcesso, setPontosAcesso] = useState([]); // Lista de pontos de acesso
+    const [loadingPontos, setLoadingPontos] = useState(true); // Status de carregamento
+
+    // Função para buscar pontos de acesso das APIs
+    const fetchPontosAcesso = async () => {
+        try {
+            const ggnetResponse = await fetch("https://api.ggnet.com.br/pontosAcesso"); // Exemplo
+            const altResponse = await fetch("https://api.alt.com.br/pontosAcesso"); // Exemplo
+
+            const ggnetData = await ggnetResponse.json();
+            const altData = await altResponse.json();
+
+            // Combinar dados das duas APIs
+            const combinedData = [...ggnetData, ...altData].reduce((unique, item) => {
+                if (!unique.some((u) => u.codcon === item.codcon)) {
+                    unique.push(item);
+                }
+                return unique;
+            }, []);
+
+            return combinedData;
+        } catch (error) {
+            console.error("Erro ao buscar pontos de acesso:", error);
+            return [];
+        }
+    };
+
+    // Carregar pontos de acesso ao montar o componente
+    useEffect(() => {
+        const loadPontosAcesso = async () => {
+            setLoadingPontos(true);
+            const data = await fetchPontosAcesso();
+            setPontosAcesso(data);
+            setLoadingPontos(false);
+        };
+
+        loadPontosAcesso();
+    }, []);
 
     // Atualizar os campos do formulário
     const handleChange = (e) => {
@@ -38,17 +78,20 @@ const Cadastro = () => {
         }
 
         try {
-            // Verificar se o protocolo já existe
-            const checkResponse = await fetch(`/check-protocolo?protocolo=${formData.protocolo}`);
-            const protocoloExists = await checkResponse.json();
+            if (!formData.protocolo || isNaN(formData.protocolo)) {
+                toast.error("Protocolo inválido. Deve ser um número.");
+                return;
+            }
 
+            // Verificar se o protocolo já existe
+            const protocoloExists = await checkProtocolo(Number(formData.protocolo));
             if (protocoloExists) {
                 toast.error("Protocolo já cadastrado. Por favor, insira outro protocolo.");
                 return;
             }
 
             // Enviar os dados para o backend
-            const response = await fetch("/Cadastro", {
+            const response = await fetch("http://localhost:4000/Cadastro", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
@@ -56,8 +99,8 @@ const Cadastro = () => {
 
             if (response.ok) {
                 toast.success("Cadastro realizado com sucesso!");
-                // Limpar o formulário
                 setFormData({
+                    idManutencao: "",
                     protocolo: "",
                     tipo: "Incidente",
                     dataInicio: "",
@@ -65,26 +108,26 @@ const Cadastro = () => {
                     observacao: "",
                     regional: "",
                     pontoAcesso: "",
+                    total_afetados: 0,
+                    whatsapp: false,
+                    email: false,
                 });
             } else {
-                toast.error("Erro ao cadastrar manutenção.");
+                const errorMsg = await response.text();
+                toast.error(`Erro ao cadastrar manutenção: ${errorMsg}`);
             }
         } catch (error) {
-            console.error("Erro:", error);
+            console.error("Erro ao verificar ou cadastrar protocolo:", error);
             toast.error("Erro ao realizar o cadastro.");
         }
     };
 
     return (
         <div className="p-4">
-            {/* Componente de notificações */}
             <ToastContainer />
             <h1 className="mb-4 text-2xl font-bold">Cadastro de Manutenção</h1>
-            <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-            >
-                {/* Protocolo */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Outros Campos do Formulário */}
                 <div>
                     <label>Protocolo</label>
                     <input
@@ -96,8 +139,6 @@ const Cadastro = () => {
                         className="w-full border p-2"
                     />
                 </div>
-
-                {/* Tipo */}
                 <div>
                     <label>Tipo</label>
                     <select
@@ -111,89 +152,27 @@ const Cadastro = () => {
                         <option value="Preventiva">Manutenção</option>
                     </select>
                 </div>
-
-                {/* Data de Início */}
-                <div>
-                    <label>Data de Início</label>
-                    <input
-                        type="datetime-local"
-                        name="dataInicio"
-                        value={formData.dataInicio}
-                        onChange={handleChange}
-                        className="w-full border p-2"
-                        required
-                    />
-                </div>
-
-                {/* Data Prevista */}
-                <div>
-                    <label>Data Prevista</label>
-                    <input
-                        type="datetime-local"
-                        name="dataPrevista"
-                        value={formData.dataPrevista}
-                        onChange={handleChange}
-                        className="w-full border p-2"
-                        required
-                    />
-                </div>
-                {/* Ponto de Acesso */}
+                {/* Campo de Ponto de Acesso */}
                 <div>
                     <label>Ponto de Acesso</label>
-                    <input
-                        type="text"
-                        name="pontoAcesso"
-                        value={formData.pontoAcesso}
-                        onChange={handleChange}
-                        className="w-full border p-2"
-                    />
+                    {loadingPontos ? (
+                        <p>Carregando pontos de acesso...</p>
+                    ) : (
+                        <select
+                            name="pontoAcesso"
+                            value={formData.pontoAcesso}
+                            onChange={handleChange}
+                            className="w-full border p-2"
+                        >
+                            <option value="">Selecione um ponto de acesso</option>
+                            {pontosAcesso.map((ponto) => (
+                                <option key={ponto.codcon} value={ponto.codcon}>
+                                    {ponto.nome} ({ponto.codcon})
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
-
-                {/* Regional */}
-                <div>
-                    <label>Regional</label>
-                    <select
-                        name="regional"
-                        value={formData.regional}
-                        onChange={handleChange}
-                        className="w-full border p-2"
-                        required
-                    >
-                        <option value="">Selecione uma regional</option>
-                        {[
-                            "MFA",
-                            "JCA",
-                            "CTA",
-                            "JGS",
-                            "JVE",
-                            "SOO",
-                            "CCO",
-                            "SPO",
-                            "RJO",
-                            "LGS",
-                            "PYE",
-                            "MS",
-                            "CSL",
-                            "CSC",
-                            "PGO",
-                            "CDR",
-                            "UVA",
-                            "VDA",
-                            "CNI",
-                            "RSL",
-                            "IRI",
-                        ].map((regional) => (
-                            <option
-                                key={regional}
-                                value={regional}
-                            >
-                                {regional}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Observação */}
                 <div>
                     <label>Observação</label>
                     <textarea
@@ -203,12 +182,7 @@ const Cadastro = () => {
                         className="w-full border p-2"
                     />
                 </div>
-
-                {/* Botão de Enviar */}
-                <button
-                    type="submit"
-                    className="rounded bg-blue-500 px-4 py-2 text-white"
-                >
+                <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white">
                     Cadastrar
                 </button>
             </form>
