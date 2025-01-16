@@ -1,6 +1,6 @@
 import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBag, UserCheck, UserPlus, Users } from "lucide-react";
 
-import ProfileImage from "@/assets/profile-image.jpg";
+import ProfileImage from "@/assets/Manutencao.png";
 import ProductImage from "@/assets/product-image.jpg";
 
 export const navbarLinks = [
@@ -17,30 +17,20 @@ export const navbarLinks = [
                 icon: ChartColumn,
                 path: "/Cadastro",
             },
-            {
-                label: "Reports",
-                icon: NotepadText,
-                path: "/reports",
-            },
         ],
     },
     {
         title: "Products",
         links: [
             {
-                label: "Products",
-                icon: Package,
-                path: "/products",
+                label: "Graficos",
+                icon: ChartColumn,
+                path: "/Graficos",
             },
             {
-                label: "New product",
-                icon: PackagePlus,
-                path: "/new-product",
-            },
-            {
-                label: "Inventory",
-                icon: ShoppingBag,
-                path: "/inventory",
+                label: "Relatorios",
+                icon: NotepadText,
+                path: "/Relatorios",
             },
         ],
     },

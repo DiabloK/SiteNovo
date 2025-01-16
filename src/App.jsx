@@ -1,15 +1,28 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { useState } from "react";
 
 import { ThemeProvider } from "@/contexts/theme-context";
 
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
+import LoginPage from "@/routes/login/LoginPage"; // Tela de login
+import ProtectedRoute from "@/routes/ProtectedRoute"; // Rota protegida
 
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticação
+
     const router = createBrowserRouter([
         {
+            path: "/login",
+            element: <LoginPage setIsAuthenticated={setIsAuthenticated} />,
+        },
+        {
             path: "/",
-            element: <Layout />,
+            element: (
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                    <Layout />
+                </ProtectedRoute>
+            ),
             children: [
                 {
                     index: true,
