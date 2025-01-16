@@ -6,7 +6,22 @@ import { overviewData, recentSalesData, topProducts } from "@/constants";
 
 import { Footer } from "@/layouts/footer";
 
-import { CreditCard, DollarSign, Package, PencilLine, Star, Trash, TrendingUp, Users } from "lucide-react";
+import {
+    CreditCard,
+    DollarSign,
+    Package,
+    PencilLine,
+    Star,
+    Trash,
+    TrendingUp,
+    Users,
+    Clock,
+    ClockAlert, 
+    Activity, 
+    Calendar,
+    AlertCircle ,
+    CalendarPlus, 
+} from "lucide-react";
 
 const DashboardPage = () => {
     const { theme } = useTheme();
@@ -18,7 +33,7 @@ const DashboardPage = () => {
                 <div className="card">
                     <div className="card-header">
                         <div className="w-fit rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <Package size={26} />
+                            <Activity size={26} />
                         </div>
                         <p className="card-title">Analise</p>
                     </div>
@@ -29,43 +44,40 @@ const DashboardPage = () => {
                 <div className="card">
                     <div className="card-header">
                         <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <DollarSign size={26} />
+                            <Calendar size={26} />
                         </div>
                         <p className="card-title">Reagendado/Incompletos</p>
                     </div>
                     <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
                         <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">$16,000</p>
-
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-header">
+                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                            <Clock size={26} />
+                        </div>
+                        <p className="card-title">Pendete</p>
+                    </div>
+                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
+                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">15,400k</p>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-header">
+                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                            <AlertCircle size={26} />
+                        </div>
+                        <p className="card-title">Ativos</p>
+                    </div>
+                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
+                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">12,340</p>
                     </div>
                 </div>
                 <div className="card">
                     <div className="card-header">
                         <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
                             <Users size={26} />
-                        </div>
-                        <p className="card-title">Pendete</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">15,400k</p>
-
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <CreditCard size={26} />
-                        </div>
-                        <p className="card-title">Ativos</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">12,340</p>
-
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <CreditCard size={26} />
                         </div>
                         <p className="card-title">Clientes Afetados</p>
                     </div>
