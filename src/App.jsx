@@ -1,18 +1,55 @@
+import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { useState } from "react";
+import { auth, db } from "@/utils/firebase"; // Importa auth e db do firebase.js
 
 import { ThemeProvider } from "@/contexts/theme-context";
-
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
 import LoginPage from "@/routes/login/LoginPage";
 import ProtectedRoute from "@/routes/ProtectedRoute";
+import Cadastro from "@/routes/dashboard/Cadastro/Cadastro";
 
-// Importando os componentes das páginas
-import Cadastro from "@/routes/dashboard/cadastro/Cadastro";
+import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Função para buscar o papel do usuário no Firestore
+    const fetchUserRole = async (user) => {
+        if (!user) return;
+
+        try {
+            const userDoc = await getDoc(doc(db, "users", user.uid)); // Busca documento do Firestore
+            if (userDoc.exists()) {
+                setUserRole(userDoc.data().role); // Define o papel
+            } else {
+                setUserRole("comum"); // Papel padrão
+            }
+        } catch (error) {
+            console.error("Erro ao buscar nível hierárquico:", error);
+        }
+    };
+
+    // Monitora a autenticação e busca o papel do usuário
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            setIsAuthenticated(!!user);
+            if (user) {
+                await fetchUserRole(user);
+            } else {
+                setUserRole(null);
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    if (loading) {
+        return <div>Carregando...</div>;
+    }
 
     const router = createBrowserRouter([
         {
@@ -29,43 +66,25 @@ function App() {
             children: [
                 {
                     index: true,
-                    element: <DashboardPage />, // Página inicial (Dashboard)
+                    element: (
+                        <ProtectedRoute
+                            isAuthenticated={isAuthenticated}
+                            requiredRole="comum"
+                        >
+                            <DashboardPage />
+                        </ProtectedRoute>
+                    ),
                 },
                 {
                     path: "Cadastro",
-                    element: <Cadastro />, // Agora renderiza o componente real de Cadastro
-                },
-                {
-                    path: "reports",
-                    element: <h1 className="title">Reports</h1>,
-                },
-                {
-                    path: "customers",
-                    element: <h1 className="title">Customers</h1>,
-                },
-                {
-                    path: "new-customer",
-                    element: <h1 className="title">New Customer</h1>,
-                },
-                {
-                    path: "verified-customers",
-                    element: <h1 className="title">Verified Customers</h1>,
-                },
-                {
-                    path: "products",
-                    element: <h1 className="title">Products</h1>,
-                },
-                {
-                    path: "new-product",
-                    element: <h1 className="title">New Product</h1>,
-                },
-                {
-                    path: "inventory",
-                    element: <h1 className="title">Inventory</h1>,
-                },
-                {
-                    path: "settings",
-                    element: <h1 className="title">Settings</h1>,
+                    element: (
+                        <ProtectedRoute
+                            isAuthenticated={isAuthenticated}
+                            requiredRole="regional_cliente"
+                        >
+                            <Cadastro />
+                        </ProtectedRoute>
+                    ),
                 },
             ],
         },

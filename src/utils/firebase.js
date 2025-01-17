@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // Configuração do Firebase (substitua pelas suas credenciais)
@@ -15,6 +16,8 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializa e exporta o Firestore
-export const db = getFirestore(app);
+// Exporta os serviços do Firebase que serão usados
+export const auth = getAuth(app); // Serviço de autenticação
+export const db = getFirestore(app); // Firestore (ou Realtime Database)
 
+export default app;

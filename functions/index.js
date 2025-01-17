@@ -2,12 +2,13 @@ const admin = require("firebase-admin");
 const axios = require("axios");
 const fs = require("fs"); // Para manipular o sistema de arquivos
 const cron = require("node-cron"); // Para agendamento
+const path = require("path");
 
-// Caminho do arquivo JSON
-const filePath = "../public/pontosAcesso.json";
+const filePath = path.resolve(__dirname, "../public/pontosAcesso.json");
+
 
 // Inicializa o Firebase Admin (caso precise usar)
-const serviceAccount = require("../paymiua.json");
+const serviceAccount = require("../public/paymiua.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

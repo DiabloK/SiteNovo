@@ -14,7 +14,7 @@
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "firebase": "^11.1.0",
+    "firebase": "^11.2.0",
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.2.0",
     "lucide-react": "^0.471.1",
