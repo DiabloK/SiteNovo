@@ -12,6 +12,9 @@ import {
 // Importa o logotipo
 import logoDark from "@/assets/logo-dark.png";
 
+import { doc, getDoc } from "firebase/firestore"; // Importa funções do Firestore
+import { db } from "@/utils/firebase"; // Instância do Firestore configurada
+
 const LoginPage = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,26 +26,51 @@ const LoginPage = ({ setIsAuthenticated }) => {
   // Função de login
   const handleLogin = async (e) => {
     e.preventDefault();
-
+  
     try {
       // Define a persistência com base no estado "Lembrar-me"
       const persistence = rememberMe
-        ? browserLocalPersistence // Persistência local (mantém o login após fechar o navegador)
-        : browserSessionPersistence; // Persistência de sessão (mantém o login enquanto o navegador está aberto)
+        ? browserLocalPersistence
+        : browserSessionPersistence;
       await setPersistence(auth, persistence);
-
+  
       // Faz o login no Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-      // Login bem-sucedido
-      setIsAuthenticated(true);
-
-      // Aqui você pode buscar o nível hierárquico no Firebase Database
-      console.log("Usuário autenticado:", userCredential.user);
-
-      navigate("/"); // Redireciona para a página inicial
+      const user = userCredential.user;
+  
+      // Recupera o documento do usuário no Firestore usando user.uid
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data(); // Obtém os dados do documento
+  
+        // Salva os dados do usuário no localStorage (ou estado global)
+        localStorage.setItem("userRole", userData.privilegio);
+        localStorage.setItem("userName", userData.nome);
+  
+        // Define o estado de autenticação como verdadeiro
+        setIsAuthenticated(true);
+  
+        // Redireciona para o dashboard
+        navigate("/");
+      } else {
+        // Caso o documento não exista, exibe erro
+        throw new Error("Usuário não encontrado no banco de dados.");
+      }
     } catch (error) {
-      alert("Erro ao fazer login: " + error.message);
+      // Tratamento de erros
+      if (error.code === "auth/wrong-password") {
+        alert("Senha incorreta. Por favor, tente novamente.");
+      } else if (error.code === "auth/user-not-found") {
+        alert("Usuário não encontrado. Verifique o e-mail e tente novamente.");
+      } else if (error.code === "auth/invalid-email") {
+        alert("E-mail inválido. Por favor, insira um e-mail válido.");
+      } else {
+        alert("Erro ao fazer login: " + error.message);
+      }
+  
+      // Remove qualquer dado inválido no localStorage
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userName");
     }
   };
 

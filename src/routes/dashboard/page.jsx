@@ -1,11 +1,8 @@
+import React from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
 import { useTheme } from "@/hooks/use-theme";
-
 import { overviewData, recentSalesData, topProducts } from "@/constants";
-
 import { Footer } from "@/layouts/footer";
-
 import {
     CreditCard,
     DollarSign,
@@ -16,75 +13,42 @@ import {
     TrendingUp,
     Users,
     Clock,
-    ClockAlert, 
-    Activity, 
+    ClockAlert,
+    Activity,
     Calendar,
-    AlertCircle ,
-    CalendarPlus, 
+    AlertCircle,
+    CalendarPlus,
 } from "lucide-react";
 
-const DashboardPage = () => {
-    const { theme } = useTheme();
+const DashboardPage = ({ counts = {} }) => {
+    const containers = [
+        { title: "Analise", icon: Activity, value: counts.Analise || 0 },
+        { title: "Reagendado/Incompletos", icon: Calendar, value: counts.Reagendado || 0 },
+        { title: "Pendente", icon: Clock, value: counts.Pendete || 0 },
+        { title: "Ativos", icon: AlertCircle, value: counts.Ativos || 0 },
+        { title: "Clientes Afetados", icon: Users, value: counts.ClientesAfetados || 0 },
+    ];
 
     return (
         <div className="flex flex-col gap-y-4">
             <h1 className="title">Dashboard</h1>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div className="card">
-                    <div className="card-header">
-                        <div className="w-fit rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <Activity size={26} />
+                {containers.map((container, index) => (
+                    <div
+                        key={index}
+                        className="card"
+                    >
+                        <div className="card-header">
+                            <div className="w-fit rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                                <container.icon size={26} />
+                            </div>
+                            <p className="card-title">{container.title}</p>
                         </div>
-                        <p className="card-title">Analise</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">25,154</p>
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <Calendar size={26} />
+                        <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
+                            <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">{container.value}</p>
                         </div>
-                        <p className="card-title">Reagendado/Incompletos</p>
                     </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">$16,000</p>
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <Clock size={26} />
-                        </div>
-                        <p className="card-title">Pendete</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">15,400k</p>
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <AlertCircle size={26} />
-                        </div>
-                        <p className="card-title">Ativos</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">12,340</p>
-                    </div>
-                </div>
-                <div className="card">
-                    <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
-                            <Users size={26} />
-                        </div>
-                        <p className="card-title">Clientes Afetados</p>
-                    </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">12,340</p>
-                    </div>
-                </div>
+                ))}
             </div>
             <div className="card">
                 <div className="card-header">

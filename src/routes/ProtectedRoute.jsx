@@ -1,22 +1,34 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { auth } from "@/utils/firebase"; // Importa o auth inicializado
 
-const ProtectedRoute = ({ isAuthenticated, requiredRole, children }) => {
+const ProtectedRoute = ({ isAuthenticated, requiredRoles = [], loading, children }) => {
+  // Exibe uma tela de carregamento enquanto a autenticação está sendo verificada
+  if (loading || isAuthenticated === null) {
+    return <div>Carregando...</div>; // Substitua por um spinner, se preferir
+  }
+
+  // Caso o usuário não esteja autenticado, redireciona para o login
   if (!isAuthenticated) {
-    // Se o usuário não estiver autenticado, redireciona para a tela de login
     return <Navigate to="/login" />;
   }
 
-  // Aqui você pode adicionar a lógica de validação de role (papel) se necessário
-  if (requiredRole) {
-    const userRole = localStorage.getItem("userRole"); // Exemplo: recuperar o role de um cache local
-    if (userRole !== requiredRole) {
-      return <Navigate to="/no-access" />; // Redireciona para uma página de acesso negado
-    }
+  // Obtém o papel do usuário do localStorage
+  const userRole = localStorage.getItem("userRole");
+
+  // Caso o papel do usuário não esteja definido (falta de dados ou erro)
+  if (!userRole) {
+    console.error("Papel do usuário não encontrado!");
+    return <Navigate to="/login" />;
   }
 
-  return children; // Renderiza a rota protegida normalmente
+  // Caso o papel do usuário não esteja na lista de papéis permitidos
+  if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
+    console.warn(`Acesso negado para o papel: ${userRole}`);
+    return <Navigate to="/no-access" />;
+  }
+
+  // Renderiza a rota normalmente se todas as condições forem atendidas
+  return children;
 };
 
 export default ProtectedRoute;

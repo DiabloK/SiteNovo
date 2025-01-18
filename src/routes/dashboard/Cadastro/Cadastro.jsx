@@ -11,6 +11,7 @@ const Cadastro = () => {
         observacao: "",
         manutencaoDividida: false,
         partesManutencao: 1, // Padrão: 1 parte
+        cidadesSelecionadas: [], // Novo campo para cidades selecionadas
     });
 
     const [pontosAcesso, setPontosAcesso] = useState([]);
@@ -101,7 +102,69 @@ const Cadastro = () => {
         }
 
         console.log("Protocolos enviados:", protocolos);
-        // Aqui você pode enviar os dados para o backend
+    };
+
+    const [cidades, setCidades] = useState([]); // Lista de cidades carregadas do JSON
+    const [searchTermCidade, setSearchTermCidade] = useState(""); // Campo de pesquisa
+    const [filteredCidades, setFilteredCidades] = useState([]); // Cidades filtradas pela pesquisa
+    const [visibleCidades, setVisibleCidades] = useState([]); // Cidades exibidas no momento
+    const [page, setPage] = useState(0); // Página atual de carregamento
+
+    const CIDADES_POR_PAGINA = 10;
+
+    // Função para carregar o JSON de cidades
+    const fetchCidades = async () => {
+        try {
+            const response = await fetch("/cidades.json");
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                setCidades(data); // Armazena todas as cidades
+                setFilteredCidades(data); // Inicialmente, todas as cidades estão disponíveis para exibição
+                setVisibleCidades(data.slice(0, CIDADES_POR_PAGINA)); // Carrega as 10 primeiras
+            } else {
+                console.error("Erro: O JSON de cidades não é um array.");
+            }
+        } catch (error) {
+            console.error("Erro ao carregar o JSON de cidades:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchCidades();
+    }, []);
+
+    // Atualiza a lista de cidades filtradas e reseta a paginação
+    useEffect(() => {
+        if (Array.isArray(cidades)) {
+            const filtro = cidades.filter((cidade) => cidade.toLowerCase().includes(searchTermCidade.toLowerCase()));
+            setFilteredCidades(filtro);
+            setPage(0); // Reseta a página para o início
+            setVisibleCidades(filtro.slice(0, CIDADES_POR_PAGINA));
+        }
+    }, [searchTermCidade, cidades]);
+
+    // Carrega mais 10 cidades ao clicar em "Carregar mais"
+    const carregarMaisCidades = () => {
+        const proximaPagina = page + 1;
+        const novasCidades = filteredCidades.slice(0, (proximaPagina + 1) * CIDADES_POR_PAGINA);
+        setVisibleCidades(novasCidades);
+        setPage(proximaPagina);
+    };
+
+    const handleCidadeChange = (cidade) => {
+        const jaSelecionada = formData.cidadesSelecionadas.includes(cidade);
+        if (jaSelecionada) {
+            setFormData({
+                ...formData,
+                cidadesSelecionadas: formData.cidadesSelecionadas.filter((c) => c !== cidade),
+            });
+        } else {
+            setFormData({
+                ...formData,
+                cidadesSelecionadas: [...formData.cidadesSelecionadas, cidade],
+            });
+        }
     };
 
     return (
@@ -254,6 +317,58 @@ const Cadastro = () => {
                                     max="10"
                                 />
                             </div>
+                        )}
+                    </div>
+                    {/* Campo de pesquisa e lista de cidades */}
+                    <div>
+                        <label className="block font-bold">Seleção de Cidade (para Evento):</label>
+                        <input
+                            type="text"
+                            placeholder="Pesquisar cidade..."
+                            value={searchTermCidade}
+                            onChange={(e) => setSearchTermCidade(e.target.value)}
+                            className="mb-4 w-full rounded border p-2"
+                        />
+
+                        {/* Exibe lista de cidades (carrega incrementalmente) */}
+                        <div className="max-h-40 overflow-y-auto rounded border p-4">
+                            {Array.isArray(visibleCidades) &&
+                                visibleCidades.map((cidade, index) => (
+                                    <div
+                                        key={index}
+                                        className={`flex cursor-pointer items-center justify-between p-2 ${
+                                            formData.cidadesSelecionadas.includes(cidade) ? "bg-blue-100" : ""
+                                        }`}
+                                        onClick={() => handleCidadeChange(cidade)}
+                                    >
+                                        <span>{cidade}</span>
+                                    </div>
+                                ))}
+                        </div>
+
+                        {/* Botão para carregar mais resultados */}
+                        {Array.isArray(filteredCidades) && filteredCidades.length > visibleCidades.length && (
+                            <button
+                                type="button"
+                                onClick={carregarMaisCidades}
+                                className="mt-2 block w-full rounded bg-gray-200 p-2 text-center text-sm"
+                            >
+                                Carregar mais cidades
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Exibir cidades selecionadas */}
+                    <div>
+                        <h2 className="font-bold">Cidades Selecionadas:</h2>
+                        {formData.cidadesSelecionadas.length > 0 ? (
+                            <ul>
+                                {formData.cidadesSelecionadas.map((cidade, index) => (
+                                    <li key={index}>{cidade}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-gray-500">Nenhuma cidade selecionada ainda.</p>
                         )}
                     </div>
 

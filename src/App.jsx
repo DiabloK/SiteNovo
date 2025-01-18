@@ -13,44 +13,42 @@ import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [userRole, setUserRole] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    // Função para buscar o papel do usuário no Firestore
-    const fetchUserRole = async (user) => {
-        if (!user) return;
-
-        try {
-            const userDoc = await getDoc(doc(db, "users", user.uid)); // Busca documento do Firestore
-            if (userDoc.exists()) {
-                setUserRole(userDoc.data().role); // Define o papel
-            } else {
-                setUserRole("comum"); // Papel padrão
-            }
-        } catch (error) {
-            console.error("Erro ao buscar nível hierárquico:", error);
-        }
-    };
-
-    // Monitora a autenticação e busca o papel do usuário
+    const [loading, setLoading] = useState(true); // Estado de carregamento
+    const [userRole, setUserRole] = useState(null); // Papel do usuário
+  
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            setIsAuthenticated(!!user);
-            if (user) {
-                await fetchUserRole(user);
+  
+      // Listener para verificar o estado de autenticação
+      const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        if (user) {
+  
+          // Tenta buscar o papel do usuário no Firestore
+          try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const role = userDoc.data().privilegio; // Obtém o papel do usuário
+              setUserRole(role);
+              localStorage.setItem("userRole", role); // Armazena no localStorage para uso no ProtectedRoute
             } else {
-                setUserRole(null);
+              setUserRole(null); // Define como null se não existir
             }
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
+          } catch (error) {
+            console.error("Erro ao buscar o papel do usuário:", error);
+            setUserRole(null); // Define como null em caso de erro
+          }
+  
+          setIsAuthenticated(true); // Define o usuário como autenticado
+        } else {
+          console.log("Nenhum usuário autenticado.");
+          setIsAuthenticated(false);
+          setUserRole(null); // Remove o papel se não houver usuário
+          localStorage.removeItem("userRole"); // Remove o papel do localStorage
+        }
+        setLoading(false); // Finaliza o carregamento
+      });
+  
+      return () => unsubscribe();
     }, []);
-
-    if (loading) {
-        return <div>Carregando...</div>;
-    }
-
     const router = createBrowserRouter([
         {
             path: "/login",
@@ -67,10 +65,7 @@ function App() {
                 {
                     index: true,
                     element: (
-                        <ProtectedRoute
-                            isAuthenticated={isAuthenticated}
-                            requiredRole="comum"
-                        >
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
                             <DashboardPage />
                         </ProtectedRoute>
                     ),
@@ -80,7 +75,7 @@ function App() {
                     element: (
                         <ProtectedRoute
                             isAuthenticated={isAuthenticated}
-                            requiredRole="regional_cliente"
+                            requiredRoles={["admin", "editor", "eng"]}
                         >
                             <Cadastro />
                         </ProtectedRoute>

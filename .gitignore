@@ -44,3 +44,4 @@
 !/var/package/*.xml
 
 paymiua.json
+node_modules
