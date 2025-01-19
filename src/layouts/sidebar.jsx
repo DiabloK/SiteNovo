@@ -20,18 +20,22 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
                 collapsed ? "max-md:-left-full" : "max-md:left-0",
             )}
         >
-            <div className="flex gap-x-3 p-3">
+            <div className="flex items-center gap-x-2 p-2">
                 <img
                     src={logoLight}
                     alt="ClientePing"
-                    className="dark:hidden"
+                    className="dark:hidden w-6 h-6" // Define tamanho de 24px x 24px
                 />
                 <img
                     src={logoDark}
                     alt="ClientePing"
-                    className="hidden dark:block"
+                    className="hidden dark:block w-6 h-6" // Define tamanho de 24px x 24px
                 />
-                {!collapsed && <p className="text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">ClientePing</p>}
+                {!collapsed && (
+                    <p className="text-sm font-medium text-slate-900 transition-colors dark:text-slate-50">
+                        ClientePing
+                    </p>
+                )}
             </div>
             <div className="flex w-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:_thin]">
                 {navbarLinks.map((navbarLink) => (

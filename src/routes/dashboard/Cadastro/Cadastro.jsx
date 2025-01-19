@@ -183,22 +183,22 @@ const Cadastro = () => {
         if (!formData.horarioInicial) return "O horário inicial é obrigatório.";
         if (!formData.horarioPrevisto) return "O horário previsto é obrigatório.";
         if (selectedPontos.length === 0) return "Selecione pelo menos um ponto de acesso.";
-    
+
         // Verifica se o horário previsto é maior que o inicial
         if (new Date(formData.horarioPrevisto).getTime() <= new Date(formData.horarioInicial).getTime()) {
             return "O horário previsto deve ser maior que o horário inicial.";
         }
-    
+
         // Validação de protocolo duplicado no Firestore
         const protocoloRef = doc(db, "protocolos", formData.protocoloISP);
         const protocoloSnap = await getDoc(protocoloRef);
         if (protocoloSnap.exists()) {
             return `O protocolo ISP ${formData.protocoloISP} já existe. Escolha outro.`;
         }
-    
+
         return null; // Nenhum erro encontrado
     };
-    
+
     const filtrarPontosPorCidade = async (loadingToastId) => {
         try {
             // Carrega os dois arquivos
@@ -242,14 +242,14 @@ const Cadastro = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const db = getFirestore();
-            const erro = await validarFormulario(formData, selectedPontos, db); 
-            if (erro) {
-                toast.error(erro); // Exibe o erro via Toastify
-                return;
-            }
+        const erro = await validarFormulario(formData, selectedPontos, db);
+        if (erro) {
+            toast.error(erro); // Exibe o erro via Toastify
+            return;
+        }
 
         try {
-            
+
             const loadingToastId = toast.loading("Processando, por favor aguarde...");
             // Adicionar pontos de acesso com base nas cidades selecionadas
             if (mostrarCidades && formData.cidadesSelecionadas.length > 0) {
@@ -264,7 +264,7 @@ const Cadastro = () => {
             }
             let pontosFiltrados = [];
             if (mostrarCidades) {
-                
+
 
                 pontosFiltrados = await filtrarPontosPorCidade(loadingToastId);
             }
@@ -318,8 +318,8 @@ const Cadastro = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <div className="w-11/12 max-w-3xl rounded-lg bg-white p-8 shadow-lg">
+        <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
+            <div className="w-11/12 max-w-3xl rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
                 <ToastContainer
                     position="top-left"
                     autoClose={5000}
@@ -330,21 +330,21 @@ const Cadastro = () => {
                     pauseOnFocusLoss
                     draggable
                     pauseOnHover
-                    theme="dark"
+                    theme={document.documentElement.classList.contains("dark") ? "dark" : "light"}
                 />
-                <h1 className="mb-4 text-center text-2xl font-bold">Cadastro de Manutenção</h1>
+                <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-slate-50">
+                    Cadastro de Manutenção
+                </h1>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-6"
-                >
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Tipo */}
                     <div>
-                        <label className="block font-bold">Tipo:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Tipo:</label>
                         <select
                             name="tipo"
                             value={formData.tipo}
                             onChange={handleChange}
-                            className="w-full rounded border p-2"
+                            className="w-full rounded border border-gray-300 bg-white p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                         >
                             <option value="Manutenção">Manutenção</option>
                             <option value="Evento">Evento</option>
@@ -354,66 +354,67 @@ const Cadastro = () => {
 
                     {/* Protocolo ISP */}
                     <div>
-                        <label className="block font-bold">Protocolo ISP:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Protocolo ISP:</label>
                         <input
                             type="text"
                             name="protocoloISP"
                             value={formData.protocoloISP}
-                            onChange={handleProtocoloChange} // Usa a nova função
-                            className={`w-full rounded border p-2 ${error === "O protocolo ISP é obrigatório." ? "border-red-500" : ""}`}
+                            onChange={handleProtocoloChange}
+                            className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                             placeholder="Digite o protocolo (somente números)"
                         />
-                        {error === "O protocolo ISP é obrigatório." && <p className="mt-1 text-sm text-red-500">{error}</p>}
                     </div>
 
                     {/* Horários */}
-                    <div className="flex space-x-4">
-                        <div className="flex-1">
-                            <label className="block font-bold">Horário Inicial:</label>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Horário Inicial:</label>
                             <input
                                 type="datetime-local"
                                 name="horarioInicial"
                                 value={formData.horarioInicial}
                                 onChange={handleChange}
-                                className={`w-full rounded border p-2 ${error === "O horário inicial é obrigatório." ? "border-red-500" : ""}`}
+                                className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                             />
-                            {error === "O horário inicial é obrigatório." && <p className="mt-1 text-sm text-red-500">{error}</p>}
                         </div>
-                        <div className="flex-1">
-                            <label className="block font-bold">Horário Previsto:</label>
+                        <div>
+                            <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Horário Previsto:</label>
                             <input
                                 type="datetime-local"
                                 name="horarioPrevisto"
                                 value={formData.horarioPrevisto}
                                 onChange={handleChange}
-                                className="w-full rounded border p-2"
+                                className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block font-bold">Ponto de Acesso:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
+                            Ponto de Acesso:
+                        </label>
                         <input
                             type="text"
                             placeholder="Pesquisar ponto de acesso..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="mb-2 w-full rounded border p-2"
+                            className="mb-4 w-full rounded border border-gray-300 bg-white p-2 text-slate-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50 dark:placeholder-gray-400"
                         />
 
-                        {/* Lista de Resultados - Só exibe se houver termo de busca e resultados */}
+                        {/* Lista de Resultados */}
                         {searchTerm && searchResults.length > 0 && (
-                            <div className="max-h-40 overflow-y-auto rounded border p-4">
+                            <div className="max-h-40 overflow-y-auto rounded border border-gray-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                                 {searchResults.map((ponto) => (
                                     <div
                                         key={ponto.codcon}
-                                        className={`flex cursor-pointer items-center justify-between border-b p-2 ${
-                                            selectedPontos.some((item) => item.codcon === ponto.codcon) ? "bg-blue-100" : ""
-                                        }`}
+                                        className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${selectedPontos.some((item) => item.codcon === ponto.codcon)
+                                            ? "bg-blue-100 dark:bg-blue-900"
+                                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            }`}
                                         onClick={() => handleSelectPonto(ponto)}
                                     >
-                                        <span>{ponto.nome}</span>
-                                        <span className="text-sm text-gray-500">{ponto.origem}</span>
+                                        <span className="text-slate-900 dark:text-slate-50">{ponto.nome}</span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">{ponto.origem}</span>
                                     </div>
                                 ))}
                             </div>
@@ -421,35 +422,43 @@ const Cadastro = () => {
 
                         {/* Exibir Pontos de Acesso Selecionados */}
                         <div className="mt-4">
-                            <h2 className="mb-2 font-bold">Pontos de Acesso Selecionados:</h2>
+                            <h2 className="mb-2 font-bold text-slate-900 dark:text-slate-50">
+                                Pontos de Acesso Selecionados:
+                            </h2>
                             {selectedPontos.length > 0 ? (
-                                <ul className="ml-6 list-disc">
+                                <ul className="ml-4 list-disc space-y-1">
                                     {selectedPontos.map((item) => (
-                                        <li key={item.codcon}>
-                                            {item.nome} - <span className="text-sm text-gray-500">{item.origem}</span>
+                                        <li
+                                            key={item.codcon}
+                                            className="text-slate-900 dark:text-slate-50"
+                                        >
+                                            {item.nome} -{" "}
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                {item.origem}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-gray-500">Nenhum ponto selecionado ainda.</p>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    Nenhum ponto selecionado ainda.
+                                </p>
                             )}
                         </div>
                     </div>
 
+
                     {/* Regional */}
                     <div>
-                        <label className="block font-bold">Regional:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Regional:</label>
                         <select
                             name="regional"
                             value={formData.regional}
                             onChange={handleChange}
-                            className="w-full rounded border p-2"
+                            className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                         >
                             {regionais.map((regional) => (
-                                <option
-                                    key={regional}
-                                    value={regional}
-                                >
+                                <option key={regional} value={regional}>
                                     {regional}
                                 </option>
                             ))}
@@ -458,88 +467,101 @@ const Cadastro = () => {
 
                     {/* Manutenção Dividida */}
                     <div>
-                        <label className="block font-bold">Manutenção Dividida:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
+                            Manutenção Dividida:
+                        </label>
                         <div className="flex items-center space-x-2">
                             <input
                                 type="checkbox"
                                 name="manutencaoDividida"
                                 checked={formData.manutencaoDividida}
                                 onChange={handleChange}
+                                className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
                             />
-                            <span>Dividir manutenção</span>
+                            <label className="text-slate-900 dark:text-slate-50">Dividir manutenção</label>
                         </div>
+
                         {formData.manutencaoDividida && (
-                            <div className="mt-2">
-                                <label className="block font-bold">Quantidade de Partes:</label>
+                            <div className="mt-4">
+                                <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
+                                    Quantidade de Partes:
+                                </label>
                                 <input
                                     type="number"
                                     name="partesManutencao"
                                     value={formData.partesManutencao}
                                     onChange={handleChange}
-                                    className="w-20 rounded border p-2"
+                                    className="w-20 rounded border border-gray-300 bg-white p-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                                     min="1"
                                     max="10"
                                 />
                             </div>
                         )}
                     </div>
+
                     {/* Campo de pesquisa e lista de cidades */}
-                    <div>
-                        <label className="block font-bold">Deseja selecionar cidades?</label>
-                        <input
-                            type="checkbox"
-                            checked={mostrarCidades}
-                            onChange={toggleCidades}
-                            className="mr-2"
-                        />
-                        <span>Habilitar seleção de cidades</span>
+                    <div className="mt-6">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={mostrarCidades}
+                                onChange={toggleCidades}
+                                className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
+                            />
+                            <label className="text-slate-900 dark:text-slate-50">Habilitar seleção de cidades</label>
+                        </div>
+
+                        {mostrarCidades && (
+                            <div className="mt-4">
+                                <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
+                                    Seleção de Cidade (para Evento):
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Pesquisar cidade..."
+                                    value={searchTermCidade}
+                                    onChange={(e) => setSearchTermCidade(e.target.value)}
+                                    className="mb-4 w-full rounded border border-gray-300 bg-white p-2 text-slate-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50 dark:placeholder-gray-400"
+                                />
+
+                                {/* Lista de Cidades */}
+                                <div className="max-h-40 overflow-y-auto rounded border border-gray-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                                    {visibleCidades.map((cidade) => (
+                                        <div
+                                            key={cidade.id}
+                                            className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${formData.cidadesSelecionadas.some((c) => c.id === cidade.id)
+                                                ? "bg-blue-100 dark:bg-blue-900"
+                                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                }`}
+                                            onClick={() => handleCidadeChange(cidade)}
+                                        >
+                                            <span className="text-slate-900 dark:text-slate-50">{cidade.nome}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Botão para Carregar Mais Cidades */}
+                                {filteredCidades.length > visibleCidades.length && (
+                                    <button
+                                        type="button"
+                                        onClick={carregarMaisCidades}
+                                        className="mt-4 block w-full rounded bg-gray-200 p-2 text-center text-sm text-slate-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-slate-50 dark:hover:bg-gray-600"
+                                    >
+                                        Carregar mais cidades
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Campo de cidades, visível apenas se o checkbox estiver ativado */}
-                    {mostrarCidades && (
-                        <div>
-                            <label className="block font-bold">Seleção de Cidade (para Evento):</label>
-                            <input
-                                type="text"
-                                placeholder="Pesquisar cidade..."
-                                value={searchTermCidade}
-                                onChange={(e) => setSearchTermCidade(e.target.value)}
-                                className="mb-4 w-full rounded border p-2"
-                            />
-
-                            <div className="max-h-40 overflow-y-auto rounded border p-4">
-                                {visibleCidades.map((cidade) => (
-                                    <div
-                                        key={cidade.id}
-                                        className={`flex cursor-pointer items-center justify-between p-2 ${
-                                            formData.cidadesSelecionadas.some((c) => c.id === cidade.id) ? "bg-blue-100" : ""
-                                        }`}
-                                        onClick={() => handleCidadeChange(cidade)}
-                                    >
-                                        <span>{cidade.nome}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {filteredCidades.length > visibleCidades.length && (
-                                <button
-                                    type="button"
-                                    onClick={carregarMaisCidades}
-                                    className="mt-2 block w-full rounded bg-gray-200 p-2 text-center text-sm"
-                                >
-                                    Carregar mais cidades
-                                </button>
-                            )}
-                        </div>
-                    )}
                     {/* Observação */}
                     <div>
-                        <label className="block font-bold">Observação:</label>
+                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Observação:</label>
                         <textarea
                             name="observacao"
                             value={formData.observacao}
                             onChange={handleChange}
-                            className="w-full rounded border p-2"
+                            className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                             rows="4"
                             placeholder="Digite alguma observação"
                         />
@@ -547,7 +569,7 @@ const Cadastro = () => {
 
                     <button
                         type="submit"
-                        className="block w-full rounded bg-blue-500 p-3 text-white"
+                        className="block w-full rounded bg-blue-500 p-3 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-500"
                     >
                         Finalizar Cadastro
                     </button>

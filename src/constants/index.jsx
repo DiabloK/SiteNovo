@@ -1,4 +1,3 @@
-
 import ProfileImage from "@/assets/Manutencao.png";
 import ProductImage from "@/assets/product-image.jpg";
 import React from "react";
@@ -40,6 +39,17 @@ export const navbarLinks = [
         icon: Plus,
         path: "Cadastro",
         roles: ["admin", "editor", "eng"],
+      },
+    ],
+  },
+  {
+    title: "Clientes",
+    links: [
+      {
+        label: "Erros de Contatos",
+        icon: Home,
+        path: "/ClientesErrors",
+        roles: ["admin", "editor", "eng", "ler"],
       },
     ],
   },
