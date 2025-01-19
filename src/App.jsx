@@ -12,84 +12,120 @@ import Cadastro from "@/routes/dashboard/Cadastro/Cadastro";
 import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true); // Estado de carregamento
-    const [userRole, setUserRole] = useState(null); // Papel do usuário
-  
-    useEffect(() => {
-  
-      // Listener para verificar o estado de autenticação
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticação
+  const [loading, setLoading] = useState(true); // Estado de carregamento
+  const [initialized, setInitialized] = useState(false); // Estado de inicialização
+  const [userRole, setUserRole] = useState(null); // Papel do usuário
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setLoading(true); // Ativa o estado de carregamento
+
       const unsubscribe = auth.onAuthStateChanged(async (user) => {
         if (user) {
-  
-          // Tenta buscar o papel do usuário no Firestore
           try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              const role = userDoc.data().privilegio; // Obtém o papel do usuário
-              setUserRole(role);
-              localStorage.setItem("userRole", role); // Armazena no localStorage para uso no ProtectedRoute
+            // Verifica se o email foi verificado
+            if (user.emailVerified) {
+              console.log("Usuário autenticado com email verificado:", user.email);
+
+              // Recupera o papel do usuário do Firestore
+              const userDoc = await getDoc(doc(db, "users", user.uid));
+              if (userDoc.exists()) {
+                const role = userDoc.data().privilegio;
+
+                // Atualiza o papel do usuário e o estado de autenticação
+                setUserRole(role);
+                localStorage.setItem("userRole", role);
+                localStorage.setItem("userEmail", user.email);
+                localStorage.setItem("userEmailVerified", true);
+                setIsAuthenticated(true);
+              } else {
+                console.error("Documento do usuário não encontrado.");
+                setUserRole(null);
+                setIsAuthenticated(false);
+              }
             } else {
-              setUserRole(null); // Define como null se não existir
+              console.warn("Usuário autenticado, mas o email não foi verificado!");
+              setUserRole(null);
+              setIsAuthenticated(false);
             }
           } catch (error) {
-            console.error("Erro ao buscar o papel do usuário:", error);
-            setUserRole(null); // Define como null em caso de erro
+            console.error("Erro ao buscar dados do usuário:", error);
+            setUserRole(null);
+            setIsAuthenticated(false);
           }
-  
-          setIsAuthenticated(true); // Define o usuário como autenticado
         } else {
           console.log("Nenhum usuário autenticado.");
+          setUserRole(null);
           setIsAuthenticated(false);
-          setUserRole(null); // Remove o papel se não houver usuário
-          localStorage.removeItem("userRole"); // Remove o papel do localStorage
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("userEmail");
+          localStorage.removeItem("userEmailVerified");
         }
-        setLoading(false); // Finaliza o carregamento
-      });
-  
-      return () => unsubscribe();
-    }, []);
-    const router = createBrowserRouter([
-        {
-            path: "/login",
-            element: <LoginPage setIsAuthenticated={setIsAuthenticated} />,
-        },
-        {
-            path: "/",
-            element: (
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                    <Layout />
-                </ProtectedRoute>
-            ),
-            children: [
-                {
-                    index: true,
-                    element: (
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <DashboardPage />
-                        </ProtectedRoute>
-                    ),
-                },
-                {
-                    path: "Cadastro",
-                    element: (
-                        <ProtectedRoute
-                            isAuthenticated={isAuthenticated}
-                            requiredRoles={["admin", "editor", "eng"]}
-                        >
-                            <Cadastro />
-                        </ProtectedRoute>
-                    ),
-                },
-            ],
-        },
-    ]);
 
-    return (
-        <ThemeProvider storageKey="theme">
-            <RouterProvider router={router} />
-        </ThemeProvider>
-    );
+        setLoading(false); // Finaliza o carregamento
+        setInitialized(true); // Marca a inicialização como concluída
+      });
+
+      return () => unsubscribe(); // Remove o listener ao desmontar o componente
+    };
+
+    initializeAuth(); // Executa a inicialização
+  }, []);
+  
+
+  const router = createBrowserRouter([
+    {
+      path: "/login",
+      element: <LoginPage setIsAuthenticated={setIsAuthenticated} />,
+    },
+    {
+      path: "/",
+      element: (
+        <ProtectedRoute
+          isAuthenticated={isAuthenticated}
+          loading={loading} // Passa o estado `loading` corretamente
+          initialized={initialized} // Passa o estado `initialized` corretamente
+        >
+          <Layout />
+        </ProtectedRoute>
+      ),
+      children: [
+        {
+          index: true,
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading} // Passa o estado `loading` corretamente
+              initialized={initialized} // Passa o estado `initialized` corretamente
+            >
+              <DashboardPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "Cadastro",
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading} // Passa o estado `loading` corretamente
+              initialized={initialized} // Passa o estado `initialized` corretamente
+              requiredRoles={["admin", "editor", "eng"]}
+            >
+              <Cadastro />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+  ]);
+  
+
+  return (
+    <ThemeProvider storageKey="theme">
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
 }
 
 export default App;
