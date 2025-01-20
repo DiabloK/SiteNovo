@@ -102,15 +102,15 @@ export const navbarLinks = [
     title: "Usuários",
     links: [
       {
-        label: "Usuários",
+        label: "Usuário",
         icon: Users,
-        path: "/Usuarios",
+        path: "/Usuario",
         roles: ["admin", "editor", "eng", "ler"],
       },
       {
         label: "Cadastrar Usuário",
         icon: UserPlus,
-        path: "/Usuarios/Cadastrar",
+        path: "/UsuarioCadastrar",
         roles: ["admin"],
       },
     ],
@@ -141,17 +141,6 @@ export const navbarLinks = [
         icon: Plus,
         path: "/Templates/WhatsApp/Criar",
         roles: ["admin", "editor", "eng"],
-      },
-    ],
-  },
-  {
-    title: "Configurações",
-    links: [
-      {
-        label: "Configurações",
-        icon: Settings,
-        path: "/Configurações",
-        roles: ["admin"],
       },
     ],
   },

@@ -10,6 +10,8 @@ import ProtectedRoute from "@/routes/ProtectedRoute";
 import Cadastro from "@/routes/dashboard/Cadastro/Cadastro";
 import ErrorContatosPage from "@/routes/ClientesErrors/ErrorContatosPage"; // Importa a página
 import VisualizacaoPage from "@/routes/visualizacao/protocolo"; // Página de visualização
+import Usuario from "@/routes/usuario/usuario";
+import CadastrarUsuario from "@/routes/usuario/cadastrousuario";
 
 import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
 
@@ -121,6 +123,30 @@ function App() {
               initialized={initialized}
             >
               <VisualizacaoPage />
+            </ProtectedRoute>
+          ),
+        },{
+          path: "/Usuario", // Rota para a página de informações do usuário
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+            >
+              <Usuario />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "/UsuarioCadastrar", // Rota para a página de cadastro de usuários
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+              requiredRoles={["admin"]} // Somente admin pode acessar
+            >
+              <CadastrarUsuario />
             </ProtectedRoute>
           ),
         },
