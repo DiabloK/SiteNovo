@@ -220,15 +220,14 @@ const VisualizacaoPage = () => {
                     </div>
                 </div>
 
-                {/* Botão para carregar comentários */}
-
+                {/* Botões de Ação */}
                 <div className="mt-6 flex flex-wrap gap-4">
                     {/* Botão Reagendar */}
                     <BotaoAcao
                         label="Reagendar"
                         onClick={() => handleAction("Reagendar")}
                         roles={["admin", "editor", "eng"]}
-                        show={protocoloData?.status === "Reagendo"}
+                        show={protocoloData?.status?.trim().toLowerCase() === "reagendado"}
                     />
 
                     {/* Botão Reabrir */}
@@ -236,7 +235,7 @@ const VisualizacaoPage = () => {
                         label="Reabrir"
                         onClick={() => handleAction("Reabrir")}
                         roles={["admin", "editor", "eng"]}
-                        show={protocoloData?.status === "Concluída"}
+                        show={protocoloData?.status?.trim().toLowerCase() === "concluida"}
                     />
 
                     {/* Botão Editar Ajustes */}
@@ -252,12 +251,30 @@ const VisualizacaoPage = () => {
                         label="Finalizar"
                         onClick={() => handleAction("Finalizar")}
                         roles={["admin", "editor", "eng"]}
-                        show={protocoloData?.status !== "Concluído"}
+                        show={protocoloData?.status?.trim().toLowerCase() !== "concluida"}
+                    />
+                    <BotaoAcao
+                        label="Aprovar"
+                        onClick={() => alterarStatus("Aprovado")}
+                        roles={["admin", "editor"]}
+                        show={protocoloData?.status?.trim().toLowerCase() === "analise"}
+                    />
+
+                    {/* Botão para Em Andamento (Nível: Pendente -> Em Andamento) */}
+                    <BotaoAcao
+                        label="Em Andamento"
+                        onClick={() => alterarStatus("Em Andamento")}
+                        roles={["admin", "editor"]}
+                        show={protocoloData?.status?.trim().toLowerCase() === "pendente"}
                     />
                 </div>
 
+
             </div>
-        </div>
+
+            {/* Modal Reutilizável */}
+
+        </div >
     );
 };
 

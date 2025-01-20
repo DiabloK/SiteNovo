@@ -17,6 +17,7 @@ import {
   Edit,
   MessageCircle,
   Plus,
+  MailWarningIcon
 } from "lucide-react";
 
 export const navbarLinks = [
@@ -47,7 +48,7 @@ export const navbarLinks = [
     links: [
       {
         label: "Erros de Contatos",
-        icon: Home,
+        icon: MailWarningIcon,
         path: "/ClientesErrors",
         roles: ["admin", "editor", "eng", "ler"],
       },
