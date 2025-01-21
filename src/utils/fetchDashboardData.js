@@ -1,27 +1,44 @@
-import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/utils/firebase";
 
 export const fetchDashboardData = async () => {
-  const db = getFirestore();
+  const collections = ["Analise", "Ativos", "Pendete", "Reagendado"];
+  const dataCounts = {};
+  const allData = []; // Para armazenar todos os documentos das coleções
 
-  // Coleções a serem consultadas
-  const collections = {
-    Analise: "Analise",
-    Reagendado: "Reagendado",
-    Pendete: "Pendete",
-    Ativos: "Ativos",
-    ClientesAfetados: "ClientesAfetados",
-  };
+  try {
+    // Buscar dados de todas as coleções em paralelo
+    await Promise.all(
+      collections.map(async (col) => {
+        try {
+          const querySnapshot = await getDocs(collection(db, col));
 
-  const data = {}; // Para armazenar as contagens
-  for (const [key, collectionName] of Object.entries(collections)) {
-    try {
-      const querySnapshot = await getDocs(collection(db, collectionName));
-      data[key] = querySnapshot.size || 0; // Contagem dos documentos na coleção
-    } catch (error) {
-      console.error(`Erro ao buscar coleção ${collectionName}:`, error);
-      data[key] = 0; // Valor padrão em caso de erro
-    }
+          // Atualiza os contadores de cada coleção
+          dataCounts[col] = querySnapshot.size;
+
+          // Verifica se há documentos na coleção
+          if (!querySnapshot.empty) {
+            // Adiciona os dados completos de cada documento ao array "allData"
+            querySnapshot.forEach((doc) => {
+              allData.push({
+                ...doc.data(), // Dados do documento
+                id: doc.id, // ID do documento no Firestore
+                tipo: col, // Adiciona o nome da coleção como "tipo"
+              });
+            });
+          } else {
+            console.warn(`A coleção "${col}" está vazia.`);
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar a coleção "${col}":`, err);
+        }
+      })
+    );
+
+    console.log("Dados carregados com sucesso:", { counts: dataCounts, data: allData });
+    return { counts: dataCounts, data: allData }; // Retorna os contadores e os dados completos
+  } catch (error) {
+    console.error("Erro geral ao buscar dados do Firebase:", error);
+    return { counts: {}, data: [] }; // Retorna valores padrão em caso de erro
   }
-
-  return { data };
 };
