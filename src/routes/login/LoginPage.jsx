@@ -198,12 +198,12 @@ const LoginPage = ({ setIsAuthenticated }) => {
         </div>
 
         {/* Coluna Direita: Animação */}
-        <div className="w-full md:w-2/5 flex items-center justify-center mt-6 md:mt-0">
+        <div className="w-full md:w-3/5 flex items-center justify-center mt-6 md:mt-0">
           <Player
             autoplay
             loop
             src={showResetPassword ? forgotPasswordAnimation : loginAnimation} // Troca a animação
-            style={{ height: "300px", width: "300px" }} // Tamanho ajustado
+            style={{ height: "400px", width: "400px" }} // Tamanho aumentado
           />
         </div>
       </div>

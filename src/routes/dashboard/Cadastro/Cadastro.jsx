@@ -242,35 +242,44 @@ const Cadastro = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const db = getFirestore();
+
+        // Validação dos dados
         const erro = await validarFormulario(formData, selectedPontos, db);
         if (erro) {
-            toast.error(erro); // Exibe o erro via Toastify
+            toast.error(erro);
             return;
         }
 
         try {
-
             const loadingToastId = toast.loading("Processando, por favor aguarde...");
+
             // Adicionar pontos de acesso com base nas cidades selecionadas
             if (mostrarCidades && formData.cidadesSelecionadas.length > 0) {
-                const pontosFiltrados = pontosAcesso.filter((ponto) => formData.cidadesSelecionadas.some((cidade) => cidade.nome === ponto.origem));
+                const pontosFiltrados = pontosAcesso.filter((ponto) =>
+                    formData.cidadesSelecionadas.some((cidade) => cidade.nome === ponto.origem)
+                );
                 setSelectedPontos((prev) => [...prev, ...pontosFiltrados]);
             }
 
             // Divisão da manutenção, se aplicável
             let divisaoManutencao = null;
             if (formData.manutencaoDividida && formData.partesManutencao > 1) {
-                divisaoManutencao = dividirManutencao(formData.horarioInicial, formData.horarioPrevisto, formData.partesManutencao);
+                divisaoManutencao = dividirManutencao(
+                    formData.horarioInicial,
+                    formData.horarioPrevisto,
+                    formData.partesManutencao
+                );
             }
+
             let pontosFiltrados = [];
             if (mostrarCidades) {
-
-
                 pontosFiltrados = await filtrarPontosPorCidade(loadingToastId);
             }
-            const pontosFinal = [...new Set([...selectedPontos, ...pontosFiltrados])];
 
-            // Preparar os dados para salvar no Firestore
+            const pontosFinal = [...new Set([...selectedPontos, ...pontosFiltrados])];
+            const Clientesafetados=[];
+            const afetados = 0;
+            // Preparar os dados para salvar
             const dados = {
                 tipo: formData.tipo,
                 protocoloISP: formData.protocoloISP,
@@ -282,16 +291,35 @@ const Cadastro = () => {
                 observacao: formData.observacao,
                 cidadesSelecionadas: formData.cidadesSelecionadas,
                 manutencaoDividida: formData.manutencaoDividida,
-                Dividida: divisaoManutencao || null, // Adicionar divisão, se existir
+                Dividida: divisaoManutencao || null,
+                email: false,
+                whatzap: false,
+                total_afetados: afetados,
+                Cometario: [],
+                status: "Analise",
+                Clientesafetados: Clientesafetados || null,
                 dataCriacao: new Date().toISOString(),
             };
 
-            // Salvar no Firestore
+            // Salvar na coleção `Analise`
             const analiseRef = doc(collection(db, "Analise"));
             await setDoc(analiseRef, dados);
 
+            // Salvar na coleção `manutencao`
+            const manutencaoRef = doc(collection(db, "manutencao"), analiseRef.id);
+            await setDoc(manutencaoRef, dados);
+
+            // Salvar na coleção `protocolos`
+            const protocoloRef = doc(db, "protocolos", formData.protocoloISP);
+            await setDoc(protocoloRef, { ...dados, id: analiseRef.id });
+
             // Notificação de sucesso
-            toast.success("Cadastro realizado com sucesso!", { position: "top-left", transition: Bounce });
+            toast.update(loadingToastId, {
+                render: "Cadastro realizado com sucesso!",
+                type: "success",
+                isLoading: false,
+                autoClose: 3000,
+            });
 
             // Redirecionar para o Dashboard
             navigate("/");
@@ -305,6 +333,7 @@ const Cadastro = () => {
             });
         }
     };
+
     const handleProtocoloChange = (e) => {
         const valor = e.target.value;
 
