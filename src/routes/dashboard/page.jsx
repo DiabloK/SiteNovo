@@ -13,8 +13,12 @@ import {
     UserX2Icon,
     XIcon,
     CheckIcon,
+    SendIcon,
+    ArrowBigRightDashIcon,
     CircleCheckBig
 } from "lucide-react";
+import { handleEdit, handleDelete, handleComplete } from "@/utils/action";
+
 
 const DashboardPage = () => {
     const [data, setData] = useState([]); // Dados completos
@@ -89,6 +93,22 @@ const DashboardPage = () => {
         { title: "Ativos", icon: AlertCircle, value: counts.Ativos || 0 },
         { title: "Clientes Afetados", icon: UserX2Icon, value: counts.ClientesAfetados || 0 }, // Novo card
     ];
+    const handleEdit = (idProtocolo, navigate) => {
+        const path = `/visualizacao/${idProtocolo}`;
+        navigate(path); // Redireciona o usuário para o caminho
+    };
+
+
+    const handleDelete = (id) => {
+        console.log(`Excluindo protocolo ${id}`);
+        // Adicione lógica para exclusão aqui
+    };
+
+    const handleComplete = (id) => {
+        console.log(`Protocolo ${id} concluído!`);
+        // Adicione lógica para concluir o protocolo aqui
+    };
+
 
 
     return (
@@ -97,7 +117,7 @@ const DashboardPage = () => {
                 <Activity className="mr-2 text-blue-500 dark:text-blue-400" size={32} />
                 Dashboard
             </h1>
-
+            
             {/* Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                 {containers.map((container, index) => (
@@ -209,34 +229,36 @@ const DashboardPage = () => {
                                                 {/* Coluna WhatsApp */}
                                                 <td className="px-4 py-2 text-center text-gray-900 dark:text-gray-100">
                                                     <div className="flex justify-center items-center gap-2">
-                                                        <MessageSquareShareIcon
+                                                        <SendIcon
                                                             size={20}
                                                             className={
-                                                                item.whatsappStatus
-                                                                    ? "text-green-500 dark:text-green-400"
-                                                                    : "text-red-500 dark:text-red-400"
+                                                                item.emailStatus
+                                                                    ? "text-blue-800 dark:text-blue-800" // Ícone de envio
+                                                                    : "text-blue-800 dark:text-blue-800"  // Ícone de erro
                                                             }
                                                             title={
-                                                                item.whatsappStatus
-                                                                    ? "WhatsApp enviado"
-                                                                    : "WhatsApp não enviado"
+                                                                item.emailStatus
+                                                                    ? "E-mail enviado"
+                                                                    : "E-mail não enviado"
                                                             }
                                                         />
-                                                        {item.whatsappStatus ? (
+                                                        {item.emailStatus ? (
                                                             <CircleCheckBig
                                                                 size={20}
-                                                                className="text-green-500 dark:text-green-400"
-                                                                title="Enviado com sucesso"
+                                                                className="text-green-800 dark:text-green-800"
+                                                                title="E-mail enviado com sucesso"
                                                             />
                                                         ) : (
                                                             <XIcon
                                                                 size={20}
                                                                 className="text-red-500 dark:text-red-400"
-                                                                title="Não enviado"
+                                                                title="E-mail não enviado"
                                                             />
                                                         )}
                                                     </div>
                                                 </td>
+
+
 
                                                 {/* Coluna E-mail */}
                                                 <td className="px-4 py-2 text-center text-gray-900 dark:text-gray-100">
@@ -246,7 +268,7 @@ const DashboardPage = () => {
                                                             className={
                                                                 item.emailStatus
                                                                     ? "text-green-500 dark:text-green-400"
-                                                                    : "text-red-500 dark:text-red-400"
+                                                                    : "text-green-500 dark:text-green-400"
                                                             }
                                                             title={
                                                                 item.emailStatus
@@ -273,27 +295,49 @@ const DashboardPage = () => {
                                                 {/* Coluna Ações */}
                                                 <td className="px-4 py-2 text-center text-gray-900 dark:text-gray-100">
                                                     <div className="flex justify-center items-center space-x-2">
-                                                        {item.status !== "Reagendado" && (
-                                                            <CheckIcon
-                                                                size={20}
-                                                                className="text-green-500 dark:text-green-400"
-                                                                title="Ação concluída"
-                                                            />
+                                                        {/* Botão para Check ou Arrow */}
+                                                        {item.status === "ATIVO" || item.status === "REAGENDANDO" ? (
+                                                            <button
+                                                                onClick={() => handleComplete(item.id)}
+                                                                className="text-green-500 hover:text-green-600"
+                                                                title="Marcar como concluído"
+                                                            >
+                                                                <CheckIcon size={20} />
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleComplete(item.id)}
+                                                                className="text-blue-500 hover:text-blue-600"
+                                                                title="Avançar"
+                                                            >
+                                                                <ArrowBigRightDashIcon size={20} />
+                                                            </button>
                                                         )}
+
+                                                        {/* Botão Editar */}
                                                         <button
+                                                            onClick={() => handleEdit(item.id, navigate)}
                                                             className="text-blue-500 hover:text-blue-600"
-                                                            onClick={() => console.log("Editar protocolo!")}
+                                                            title="Editar protocolo"
                                                         >
                                                             <PencilLine size={20} />
                                                         </button>
+
+                                                        {/* Botão Excluir */}
                                                         <button
+                                                            onClick={() => {
+                                                                setModalData(item);
+                                                                handleDelete(item.id, setShowModal);
+                                                            }}
                                                             className="text-red-500 hover:text-red-600"
-                                                            onClick={() => console.log("Protocolo excluído!")}
+                                                            title="Excluir protocolo"
                                                         >
                                                             <Trash size={20} />
                                                         </button>
                                                     </div>
                                                 </td>
+
+
                                             </tr>
                                         ))
                                     ) : (
