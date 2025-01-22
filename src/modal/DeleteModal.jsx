@@ -3,7 +3,7 @@ import { doc, deleteDoc, updateDoc } from "firebase/firestore"; // Firebase
 import { db } from "@/utils/firebase"; // Importe o Firestore configurado
 
 
-const Modal = ({
+const DeleteModal  = ({
     title,
     message,
     protocoloId, // ID usado para "protocolos"
@@ -86,4 +86,4 @@ const Modal = ({
     );
 };
 
-export default Modal;
+export default DeleteModal ;

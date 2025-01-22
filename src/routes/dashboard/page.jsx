@@ -17,8 +17,9 @@ import {
     AlarmClockPlusIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Modal from "@/modal/Modal";
 import AdvanceModal from "@/modal/AdvanceModal";
+import DeleteModal from "@/modal/DeleteModal"; // Novo nome para o modal genérico
+import CompleteProtocolModal from "@/modal/CompleteProtocol"; // Modal para conclusão de protocolos
 
 const DashboardPage = () => {
     const [data, setData] = useState([]);
@@ -75,7 +76,7 @@ const DashboardPage = () => {
 
     const containers = [
         { title: "Analise", icon: Activity, value: counts.Analise || 0 },
-        { title: "Reagendado/Incompletos", icon: Calendar, value: counts.Reagendado || 0 },
+        { title: "Reagendado", icon: Calendar, value: counts.Reagendado || 0 },
         { title: "Pendente", icon: Clock, value: counts.Pendente || 0 },
         { title: "Ativos", icon: AlertCircle, value: counts.Ativos || 0 },
         { title: "Clientes Afetados", icon: UserX2Icon, value: counts.ClientesAfetados || 0 },
@@ -93,6 +94,38 @@ const DashboardPage = () => {
         setAdvanceData(item); // Salva o item inteiro no estado
         setShowAdvanceModal(true); // Exibe o modal
     };
+    const [showCompleteProtocolModal, setShowCompleteProtocolModal] = useState(false);
+    const [completeProtocolData, setCompleteProtocolData] = useState(null);
+
+
+    const handleCompleteProtocolModal = (item) => {
+        console.log("Abrindo modal para:", item); // Verificar se o item contém os dados esperados
+        setCompleteProtocolData(item);
+        setShowCompleteProtocolModal(true);
+    };
+
+
+    const completeProtocol = (updatedData) => {
+        if (!updatedData || !updatedData.id) {
+            console.error("Dados inválidos recebidos:", updatedData);
+            return;
+        }
+
+        console.log("Concluindo o protocolo com os dados:", updatedData);
+
+        // Atualiza os dados
+        setData((prev) => {
+            const filtered = prev.filter((d) => d.id !== updatedData.id);
+            if (filtered.length === prev.length) {
+                console.warn("Nenhum item foi removido. ID não encontrado:", updatedData.id);
+            }
+            return filtered;
+        });
+
+        // Fecha o modal
+        setShowCompleteModal(false);
+    };
+
 
     return (
         <div className="w-full min-h-screen bg-inherit text-slate-100">
@@ -155,24 +188,24 @@ const DashboardPage = () => {
                                     {filteredData.length > 0 ? (
                                         filteredData.map((item) => (
                                             <tr key={item.id} className="hover:bg-gray-100 dark:hover:bg-gray-800">
-                                                <td className="px-4 py-2 text-center">{item.protocoloISP || "—"}</td>
-                                                <td className="px-4 py-2 text-center">{item.status || "—"}</td>
-                                                <td className="px-4 py-2 text-center">
+                                                <td className="px-4 py-2 text-center text-black dark:text-white">{item.protocoloISP || "—"}</td>
+                                                <td className="px-4 py-2 text-center text-black dark:text-white">{item.status || "—"}</td>
+                                                <td className="px-4 py-2 text-center text-black dark:text-white">
                                                     <div className="flex flex-col items-center">
-                                                        <span>
+                                                        <span className="text-sm text-gray-600 dark:text-gray-400">
                                                             {item.horarioInicial
-                                                                ? new Date(item.horarioInicial).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+                                                                ? new Date(item.horarioInicial || "AINDA SEM AGENDAR").toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
                                                                 : "—"}
                                                         </span>
                                                         <span className="text-sm text-gray-600 dark:text-gray-400">
                                                             {item.horarioPrevisto
-                                                                ? new Date(item.horarioPrevisto).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+                                                                ? new Date(item.horarioPrevisto || "  ").toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
                                                                 : "—"}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-2 text-center">{item.regional || "—"}</td>
-                                                <td className="px-4 py-2 text-center">
+                                                <td className="px-4 py-2 text-center text-black dark:text-white">{item.regional || "—"}</td>
+                                                <td className="px-4 py-2 text-center text-black dark:text-white">
                                                     {Array.isArray(item.clientesAfetados) ? item.clientesAfetados.length : "—"}
                                                 </td>
                                                 <td className="px-4 py-2 text-center">
@@ -203,11 +236,11 @@ const DashboardPage = () => {
                                                             </button>
                                                         ) : null}
                                                         {item.status === "Ativos" ? (
-                                                            <button className="text-green-500 hover:text-green-600">
+                                                            <button onClick={() => handleCompleteProtocolModal(item)} className="text-green-500 hover:text-green-600">
                                                                 <CheckIcon size={20} />
                                                             </button>
                                                         ) : null}
-                                                        {item.status === "Reagendados" ? (
+                                                        {item.status === "Reagendado" ? (
                                                             <button className="text-yellow-500 hover:text-yellow-600">
                                                                 <AlarmClockPlusIcon size={20} />
                                                             </button>
@@ -237,17 +270,27 @@ const DashboardPage = () => {
                 </div>
             </div>
 
-            <Modal
+            <DeleteModal
                 title="Confirmar Exclusão"
                 message={`Tem certeza de que deseja excluir o protocolo "${modalData?.protocoloISP}"?`}
                 protocoloId={modalData?.protocoloISP}
                 onSuccess={() => {
                     setShowModal(false);
-                    setData(prev => prev.filter(item => item.id !== modalData?.id));
+                    setData((prev) => prev.filter((item) => item.id !== modalData?.id));
                 }}
                 onCancel={() => setShowModal(false)}
                 isVisible={showModal}
             />
+
+            <CompleteProtocolModal
+                item={completeProtocolData} // Dados do protocolo sendo passados corretamente
+                isVisible={showCompleteProtocolModal} // Propriedade correta para visibilidade
+                onCancel={() => setShowCompleteProtocolModal(false)} // Corrigido o uso do estado
+                onComplete={() => console.log("Concluído com sucesso!")} // Remove o item da lista local
+            
+            />
+
+
 
             <AdvanceModal
                 title="Avançar Protocolo"
@@ -260,6 +303,7 @@ const DashboardPage = () => {
                 onCancel={() => setShowAdvanceModal(false)}
                 isVisible={showAdvanceModal}
             />
+
 
             <Footer />
         </div>
