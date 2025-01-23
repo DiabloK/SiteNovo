@@ -12,7 +12,10 @@ import ErrorContatosPage from "@/routes/ClientesErrors/ErrorContatosPage"; // Im
 import VisualizacaoPage from "@/routes/visualizacao/protocolo"; // Página de visualização
 import Usuario from "@/routes/usuario/usuario";
 import CadastrarUsuario from "@/routes/usuario/cadastrousuario";
-
+import EmailCriar from "@/routes/Templantes/Email/Criar";
+import Emaileditor from "@/routes/Templantes/Email/editor";
+import Mensagemeditor from "@/routes/Templantes/mensagem/editor";
+import MensagemCriar from "@/routes/Templantes/mensagem/criadormensagem";
 import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
 
 function App() {
@@ -150,7 +153,58 @@ function App() {
             </ProtectedRoute>
           ),
         },
-
+        {
+          path: "/Templates/Email/Criar", // Rota para a página de cadastro de usuários
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+              requiredRoles={["admin"]} // Somente admin pode acessar
+            >
+              <EmailCriar />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "/Templates/Email/Editar", // Rota para a página de cadastro de usuários
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+              requiredRoles={["admin"]} // Somente admin pode acessar
+            >
+              <Emaileditor />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "/Templates/WhatsApp/Editar", // Rota para a página de cadastro de usuários
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+              requiredRoles={["admin"]} // Somente admin pode acessar
+            >
+              <Mensagemeditor />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "/Templates/WhatsApp/Criar", // Rota para a página de cadastro de usuários
+          element: (
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              initialized={initialized}
+              requiredRoles={["admin"]} // Somente admin pode acessar
+            >
+              <MensagemCriar />
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
     // Adiciona a rota para capturar páginas não encontradas

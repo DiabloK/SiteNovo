@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import AdvanceModal from "@/modal/AdvanceModal";
 import DeleteModal from "@/modal/DeleteModal"; // Novo nome para o modal genérico
 import CompleteProtocolModal from "@/modal/CompleteProtocol"; // Modal para conclusão de protocolos
+import MaintenanceModal from "@/modal/ReagedadoModal"; // Modal para conclusão de protocolos
 
 const DashboardPage = () => {
     const [data, setData] = useState([]);
@@ -103,6 +104,14 @@ const DashboardPage = () => {
         setCompleteProtocolData(item);
         setShowCompleteProtocolModal(true);
     };
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+    const [maintenanceData, setMaintenanceData] = useState(null);
+
+    const handleReagendadoModal = (item) => {
+        setMaintenanceData(item); // Passa o item para o modal
+        setShowMaintenanceModal(true); // Exibe o modal
+    };
+
 
 
     const completeProtocol = (updatedData) => {
@@ -235,16 +244,19 @@ const DashboardPage = () => {
                                                                 <ArrowBigRightDashIcon size={20} />
                                                             </button>
                                                         ) : null}
+
                                                         {item.status === "Ativos" ? (
                                                             <button onClick={() => handleCompleteProtocolModal(item)} className="text-green-500 hover:text-green-600">
                                                                 <CheckIcon size={20} />
                                                             </button>
                                                         ) : null}
                                                         {item.status === "Reagendado" ? (
-                                                            <button className="text-yellow-500 hover:text-yellow-600">
+                                                            <button onClick={() => handleReagendadoModal(item)} className="text-yellow-500 hover:text-yellow-600">
                                                                 <AlarmClockPlusIcon size={20} />
                                                             </button>
                                                         ) : null}
+
+
                                                         <button onClick={() => handleEdit(item.protocoloISP)} className="text-blue-500 hover:text-blue-600">
                                                             <PencilLine size={20} />
                                                         </button>
@@ -287,11 +299,8 @@ const DashboardPage = () => {
                 isVisible={showCompleteProtocolModal} // Propriedade correta para visibilidade
                 onCancel={() => setShowCompleteProtocolModal(false)} // Corrigido o uso do estado
                 onComplete={() => console.log("Concluído com sucesso!")} // Remove o item da lista local
-            
+
             />
-
-
-
             <AdvanceModal
                 title="Avançar Protocolo"
                 message={`Deseja avançar o protocolo "${advanceData?.protocoloISP}" para o próximo status?`}
@@ -303,6 +312,16 @@ const DashboardPage = () => {
                 onCancel={() => setShowAdvanceModal(false)}
                 isVisible={showAdvanceModal}
             />
+            <MaintenanceModal
+                isVisible={showMaintenanceModal}
+                item={maintenanceData} // Passa os dados do item
+                onCancel={() => setShowMaintenanceModal(false)} // Fecha o modal
+                onSuccess={() => {
+                    setShowMaintenanceModal(false);
+                    setData((prev) => prev.filter((d) => d.id !== maintenanceData?.id)); // Remove o item reagendado da lista
+                }}
+            />
+
 
 
             <Footer />
