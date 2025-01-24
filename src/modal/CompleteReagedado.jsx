@@ -83,190 +83,67 @@ const CompleteProtocolModal = ({ item, isVisible, onCancel, onComplete }) => {
             alert("Por favor, selecione um motivo.");
             return;
         }
-
+    
         const horarioFinal = new Date().toISOString();
-        const statusAtualizado = "Reagendado";
-
+    
         try {
-            // Referências
-            const ativoRef = doc(db, "Ativos", item.id);
+            // Referência ao documento dentro de "Reagendado"
             const reagendadoRef = doc(db, "Reagendado", item.id);
-            const colecoes = ["manutencao", "protocolos"];
-
-            // Obter dados do documento em "Ativos"
-            const ativoSnapshot = await getDoc(ativoRef);
-            if (!ativoSnapshot.exists()) {
-                console.warn(`Documento com ID "${item.id}" não encontrado na coleção "Ativos".`);
+    
+            // Busca o documento na coleção "Reagendado"
+            const reagendadoSnapshot = await getDoc(reagendadoRef);
+            if (!reagendadoSnapshot.exists()) {
+                console.warn(`Documento com ID "${item.id}" não encontrado na coleção "Reagendado".`);
                 return;
             }
-            const dadosAtivo = ativoSnapshot.data();
-
-            const isDividida =
-                !!dadosAtivo.manutencaoDividida && // Garante que "manutencaoDividida" é true
-                dadosAtivo.Dividida && // Garante que "Dividida" existe
-                Object.keys(dadosAtivo.Dividida).length > 0; // Garante que "Dividida" tem partes
-
-            console.log("Manutenção dividida:", isDividida);
-
+    
+            // Dados do documento
+            const dadosReagendado = reagendadoSnapshot.data();
+    
+            // Verifica se existe uma manutenção dividida
+            const isDividida = dadosReagendado.Dividida && Object.keys(dadosReagendado.Dividida).length > 0;
+    
             if (isDividida) {
                 console.log("Processando manutenção dividida...");
-
-                // Transformar o map "Dividida" em uma array iterável
-                const partesDivididas = Object.entries(dadosAtivo.Dividida || {});
-                console.log("Partes divididas:", partesDivididas);
-
-                // Identificar a parte atual (a última incompleta)
-                const parteAtual = partesDivididas.find(([chave, parte]) => {
-                    console.log(`Verificando parte ${chave}:`, parte);
-
-                    // Acessando "Fim Horario" corretamente
-                    if (parte && parte["Fim Horario"] === null) {
-                        console.log(`Parte encontrada com "Fim Horario" === null: ${chave}`);
-                        return true; // Retorna a parte incompleta
-                    }
-
-                    return false; // Não encontrou a parte
-                });
-
-                if (!parteAtual) {
-                    console.warn("Nenhuma parte incompleta encontrada ou os dados estão inconsistentes.");
-                    return;
-                }
-
-                const [chaveParteAtual, dadosParteAtual] = parteAtual; // Ex.: "1-parte", { Fim Horario: null, ... }
-                console.log(`Parte incompleta encontrada: ${chaveParteAtual}`, dadosParteAtual);
-
-                const indiceProximo = parseInt(chaveParteAtual.split("-")[0]) + 1; // Calcular próxima parte
-                const ehUltimaParte = indiceProximo > partesDivididas.length;
-
-                // Atualizar a parte atual em dadosAtivo.Dividida
-                dadosAtivo.Dividida[chaveParteAtual] = {
-                    ...dadosParteAtual, // Mantém os valores que já estavam
-                    "Fim Horario": horarioFinal, // Atualiza apenas o "Fim Horario"
-                    "Inicio Horario": dadosParteAtual["Inicio Horario"] || horarioFinal, // Garante que o "Inicio Horario" tenha um valor
-                    "Previsto Horario": dadosParteAtual["Previsto Horario"], // Mantém o previsto
-                };
-
-                console.log("Parte atualizada em Dividida:", dadosAtivo.Dividida[chaveParteAtual]);
-
-                if (ehUltimaParte) {
-                    console.log("Finalizando última parte...");
-                    // Finalização completa (última parte)
-                    for (const colecao of colecoes) {
-                        const docRef = doc(db, colecao, item.id);
-                        const docSnapshot = await getDoc(docRef);
-
-                        if (docSnapshot.exists()) {
-                            const dados = docSnapshot.data();
-                            await setDoc(
-                                docRef,
-                                {
-                                    ...dados,
-                                    Dividida: dadosAtivo.Dividida, // Atualizado aqui
-                                    status: "Concluído",
-                                    horarioFinal,
-                                    motivo,
-                                    forcaMaior,
-                                    comentarios: [...(dados.comentarios || []), comentario],
-                                },
-                                { merge: true }
-                            );
-                        } else {
-                            console.warn(`Documento com ID "${item.id}" não encontrado na coleção "${colecao}".`);
-                        }
-                    }
-                    await deleteDoc(ativoRef); // Excluir o documento de "Ativos"
-                } else {
-                    console.log("Ainda há partes pendentes...");
-                    // Ainda há partes pendentes
-                    for (const colecao of colecoes) {
-                        const docRef = doc(db, colecao, item.id);
-                        const docSnapshot = await getDoc(docRef);
-
-                        if (docSnapshot.exists()) {
-                            const dados = docSnapshot.data();
-                            await setDoc(
-                                docRef,
-                                {
-                                    ...dados,
-                                    Dividida: dadosAtivo.Dividida, // Atualizado aqui
-                                    status: statusAtualizado,
-                                    horarioFinal,
-                                    motivo,
-                                    forcaMaior,
-                                    comentarios: [...(dados.comentarios || []), comentario],
-                                },
-                                { merge: true }
-                            );
-                        } else {
-                            console.warn(`Documento com ID "${item.id}" não encontrado na coleção "${colecao}".`);
-                        }
-                    }
-
-                    // Criar uma cópia do documento na coleção "Reagendado"
-                    await setDoc(reagendadoRef, {
-                        ...dadosAtivo,
-                        Dividida: dadosAtivo.Dividida, // Atualizado aqui
-                        status: statusAtualizado,
-                        horarioFinal,
-                        motivo,
-                        forcaMaior,
-                        comentarios: [...(dadosAtivo.comentarios || []), comentario],
-                    });
-
-                    await deleteDoc(ativoRef); // Excluir o documento de "Ativos"
+    
+                // Atualiza a última parte incompleta em "Dividida"
+                const partesDivididas = Object.entries(dadosReagendado.Dividida || {});
+                const parteAtual = partesDivididas.find(
+                    ([, parte]) => parte["Fim Horario"] === null
+                );
+    
+                if (parteAtual) {
+                    const [chaveParteAtual, dadosParteAtual] = parteAtual;
+                    dadosReagendado.Dividida[chaveParteAtual] = {
+                        ...dadosParteAtual,
+                        "Fim Horario": horarioFinal, // Marca o fim
+                    };
                 }
             }
-
-            else {
-                // Manutenção normal (não dividida)
-                for (const colecao of colecoes) { // Alterado aqui: nome correto
-                    const docRef = doc(db, colecao, item.id);
-                    const docSnapshot = await getDoc(docRef);
-
-                    if (docSnapshot.exists()) {
-                        const dados = docSnapshot.data();
-                        await setDoc(
-                            docRef,
-                            {
-                                ...dados,
-                                status: statusAtualizado,
-                                horarioFinal,
-                                motivo,
-                                forcaMaior,
-                                comentarios: [...(dados.comentarios || []), comentario],
-                            },
-                            { merge: true }
-                        );
-                    } else {
-                        console.warn(`Documento com ID "${item.id}" não encontrado na coleção "${colecao}".`);
-                    }
-                }
-                // Excluir o documento de "Ativos"
-                await deleteDoc(ativoRef);
-            }
-
-            // Mensagem de sucesso
-            toast.success('Finalizado', {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: false,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "light",
-                transition: Bounce,
-            });
-
-            // Callback de sucesso
+    
+            // Atualiza o documento na coleção "Reagendado" com os dados finais
+            await setDoc(
+                doc(db, "manutencao", item.id), // Move para "manutencao" como finalizado
+                {
+                    ...dadosReagendado,
+                    status: "Concluído", // Marca como concluído
+                    horarioFinal,
+                    motivo,
+                    forcaMaior,
+                    comentarios: [...(dadosReagendado.comentarios || []), comentario], // Adiciona comentários
+                },
+                { merge: true }
+            );
+    
+            // Exclui o documento de "Reagendado"
+            await deleteDoc(reagendadoRef);
+    
             onComplete();
         } catch (error) {
-            console.error("Erro ao concluir o documento:", error);
-            alert("Erro ao concluir o documento. Verifique os dados e tente novamente.");
+            console.error("Erro ao finalizar o protocolo:", error);
+            alert("Erro ao finalizar o protocolo. Verifique os dados e tente novamente.");
         }
     };
-
 
     return (
         <Modal

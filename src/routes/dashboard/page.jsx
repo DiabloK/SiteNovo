@@ -16,11 +16,13 @@ import {
     ArrowBigRightDashIcon,
     AlarmClockPlusIcon
 } from "lucide-react";
+import { ToastContainer, toast, Bounce } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import AdvanceModal from "@/modal/AdvanceModal";
 import DeleteModal from "@/modal/DeleteModal"; // Novo nome para o modal genérico
 import CompleteProtocolModal from "@/modal/CompleteProtocol"; // Modal para conclusão de protocolos
 import MaintenanceModal from "@/modal/ReagedadoModal"; // Modal para conclusão de protocolos
+import CompleteProtocolReagedadoModal from "@/modal/CompleteReagedado"; // Modal para conclusão de protocolos
 
 const DashboardPage = () => {
     const [data, setData] = useState([]);
@@ -39,23 +41,27 @@ const DashboardPage = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                setLoading(true);
-                const result = await fetchDashboardData();
-                setCounts(result.counts || {});
-                setData(result.data || []);
-                setFilteredData(result.data.filter(item => item.status === activeFilter));
+                const { counts, data } = await fetchDashboardData(); // Busca os dados do Firestore
+                setCounts(counts); // Atualiza os contadores no estado
+                setData(data); // Atualiza o estado principal com todos os dados
+                setFilteredData(data.filter((item) => item.status === activeFilter)); // Filtra os dados para a tabela
             } catch (error) {
-                console.error("Erro ao carregar os dados:", error);
-                setCounts({});
-                setData([]);
-                setFilteredData([]);
+                console.error("Erro ao carregar os dados do Firestore:", error);
             } finally {
-                setLoading(false);
+                setLoading(false); // Para o spinner de carregamento
             }
         };
 
-        loadData();
-    }, []);
+        loadData(); // Chama a função para carregar os dados
+    }, [activeFilter]); // Recarrega os dados sempre que o filtro ativo mudar
+    const [showCompleteReagendadoModal, setShowCompleteReagendadoModal] = useState(false);
+    const [completeReagendadoData, setCompleteReagendadoData] = useState(null);
+
+    const handleCompleteReagendadoModal = (item) => {
+        setCompleteReagendadoData(item); // Passa os dados do item selecionado para o modal
+        setShowCompleteReagendadoModal(true); // Exibe o modal
+    };
+
 
     // Update filtered data on activeFilter change
     useEffect(() => {
@@ -67,14 +73,13 @@ const DashboardPage = () => {
         setFilteredData(
             data.filter((item) => {
                 return (
-                    item.status === activeFilter &&
-                    (item.protocoloISP?.toLowerCase().includes(search.toLowerCase()) ||
-                        item.regional?.toLowerCase().includes(search.toLowerCase()))
+                    item.status === activeFilter && // Filtrar pelo filtro ativo
+                    (item.protocoloISP?.toLowerCase().includes(search.toLowerCase()) || // Pesquisa por protocolo
+                        item.regional?.toLowerCase().includes(search.toLowerCase())) // Pesquisa por regional
                 );
             })
         );
-    }, [search, activeFilter, data]);
-
+    }, [data, activeFilter, search]);
     const containers = [
         { title: "Analise", icon: Activity, value: counts.Analise || 0 },
         { title: "Reagendado", icon: Calendar, value: counts.Reagendado || 0 },
@@ -142,6 +147,18 @@ const DashboardPage = () => {
                 <Activity className="mr-2 text-blue-500 dark:text-blue-400" size={32} />
                 Dashboard
             </header>
+            <ToastContainer
+                position="top-left"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme={document.documentElement.classList.contains("dark") ? "dark" : "light"}
+            />
 
             {/* Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -185,7 +202,10 @@ const DashboardPage = () => {
                         <p className="text-center py-4">Carregando...</p>
                     ) : (
                         <div className="relative h-[500px] w-full overflow-auto">
-                            <table className="table-auto w-full text-sm">
+                            <table
+                                key={filteredData.map((item) => item.id).join(",")} // Chave única baseada nos IDs
+                                className="table-auto w-full text-sm"
+                            >
                                 <thead className="bg-inherit text-gray-900 dark:text-gray-100">
                                     <tr>
                                         {['Protocolo', 'Status', 'Horário Previsto', 'Regional', 'Clientes Afetados', 'WhatsApp', 'E-mail', 'Ações'].map((header, index) => (
@@ -251,12 +271,24 @@ const DashboardPage = () => {
                                                             </button>
                                                         ) : null}
                                                         {item.status === "Reagendado" ? (
-                                                            <button onClick={() => handleReagendadoModal(item)} className="text-yellow-500 hover:text-yellow-600">
-                                                                <AlarmClockPlusIcon size={20} />
-                                                            </button>
+                                                            <div className="flex space-x-2">
+                                                                {/* Primeiro botão */}
+                                                                <button
+                                                                    onClick={() => handleReagendadoModal(item)}
+                                                                    className="text-yellow-500 hover:text-yellow-600"
+                                                                >
+                                                                    <AlarmClockPlusIcon size={20} />
+                                                                </button>
+
+                                                                {/* Segundo botão */}
+                                                                <button
+                                                                    onClick={() => handleCompleteReagendadoModal(item)}
+                                                                    className="text-green-500 hover:text-green-600"
+                                                                >
+                                                                    <CheckIcon size={20} />
+                                                                </button>
+                                                            </div>
                                                         ) : null}
-
-
                                                         <button onClick={() => handleEdit(item.protocoloISP)} className="text-blue-500 hover:text-blue-600">
                                                             <PencilLine size={20} />
                                                         </button>
@@ -289,6 +321,8 @@ const DashboardPage = () => {
                 onSuccess={() => {
                     setShowModal(false);
                     setData((prev) => prev.filter((item) => item.id !== modalData?.id));
+                    setFilteredData((prev) => prev.filter((item) => item.id !== modalData?.id));
+                    toast.success("Protocolo excluído com sucesso!");
                 }}
                 onCancel={() => setShowModal(false)}
                 isVisible={showModal}
@@ -298,7 +332,11 @@ const DashboardPage = () => {
                 item={completeProtocolData} // Dados do protocolo sendo passados corretamente
                 isVisible={showCompleteProtocolModal} // Propriedade correta para visibilidade
                 onCancel={() => setShowCompleteProtocolModal(false)} // Corrigido o uso do estado
-                onComplete={() => console.log("Concluído com sucesso!")} // Remove o item da lista local
+                onComplete={() => {
+                    setShowCompleteProtocolModal(false);
+                    setData((prev) => prev.filter((item) => item.id !== completeProtocolData?.id));
+                    setFilteredData((prev) => prev.filter((item) => item.id !== completeProtocolData?.id));
+                }}
 
             />
             <AdvanceModal
@@ -307,7 +345,9 @@ const DashboardPage = () => {
                 item={advanceData} // Passa o item inteiro
                 onSuccess={() => {
                     setShowAdvanceModal(false);
-                    setData(prev => prev.filter(d => d.id !== advanceData.id)); // Remove o item da lista local
+                    setData((prev) => prev.filter((item) => item.id !== maintenanceData?.id));
+                    setFilteredData((prev) => prev.filter((item) => item.id !== maintenanceData?.id));
+                    toast.success("Protocolo reagendado com sucesso!");
                 }}
                 onCancel={() => setShowAdvanceModal(false)}
                 isVisible={showAdvanceModal}
@@ -318,9 +358,23 @@ const DashboardPage = () => {
                 onCancel={() => setShowMaintenanceModal(false)} // Fecha o modal
                 onSuccess={() => {
                     setShowMaintenanceModal(false);
-                    setData((prev) => prev.filter((d) => d.id !== maintenanceData?.id)); // Remove o item reagendado da lista
+                    setData((prev) => prev.filter((item) => item.id !== maintenanceData?.id));
+                    setFilteredData((prev) => prev.filter((item) => item.id !== maintenanceData?.id));
+                    toast.success("Protocolo reagendado com sucesso!");
                 }}
             />
+            <CompleteProtocolReagedadoModal
+                item={completeReagendadoData} // Passa os dados do item para o modal
+                isVisible={showCompleteReagendadoModal} // Controle de visibilidade
+                onCancel={() => setShowCompleteReagendadoModal(false)} // Função para fechar o modal
+                onComplete={() => {
+                    setShowCompleteReagendadoModal(false); // Fecha o modal após a conclusão
+                    setData((prev) => prev.filter((item) => item.id !== completeReagendadoData?.id)); // Atualiza a lista de dados
+                    setFilteredData((prev) => prev.filter((item) => item.id !== completeReagendadoData?.id)); // Atualiza a lista filtrada
+                    toast.success("Protocolo finalizado com sucesso!"); // Mensagem de sucesso
+                }}
+            />
+
 
 
 

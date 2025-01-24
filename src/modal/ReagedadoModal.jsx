@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const MaintenanceModal = ({ isVisible, onCancel, item, onSuccess }) => {
     const [dataType, setDataType] = useState("");
@@ -11,12 +13,24 @@ const MaintenanceModal = ({ isVisible, onCancel, item, onSuccess }) => {
 
     const handleValidation = () => {
         if (!horarioInicial || !horarioPrevisto) {
-            alert("Preencha os horários!");
+            toast.error("Preencha os horários!", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                pauseOnHover: true,
+                draggable: true,
+            });
             return false;
         }
 
         if (new Date(horarioPrevisto) <= new Date(horarioInicial)) {
-            alert("O horário previsto deve ser maior que o horário inicial!");
+            toast.error("O horário previsto deve ser maior que o horário inicial!", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                pauseOnHover: true,
+                draggable: true,
+            });
             return false;
         }
 
@@ -30,17 +44,22 @@ const MaintenanceModal = ({ isVisible, onCancel, item, onSuccess }) => {
             const { id, status, isDivided } = item;
 
             if (!id || !status) {
-                console.error("ID ou status ausentes no item:", item);
+                toast.error("ID ou status ausentes no item.", {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
                 return;
             }
 
-            // Tratamento para manutenção dividida
             let updatedData = {};
             if (isDivided) {
                 updatedData = {
                     horarioInicial: horarioInicial || null,
                     horarioPrevisto: horarioPrevisto || null,
-                    horarioFim: null, // Para próximas divisões
+                    horarioFim: null,
                 };
             } else {
                 updatedData = {
@@ -49,30 +68,51 @@ const MaintenanceModal = ({ isVisible, onCancel, item, onSuccess }) => {
                 };
             }
 
-            // Atualizar os dados no banco
             const sourceRef = doc(db, "Reagendado", id);
             const docSnapshot = await getDoc(sourceRef);
 
             if (!docSnapshot.exists()) {
-                console.warn(`Documento com ID "${id}" não encontrado na coleção "Reagendado".`);
+                toast.warning(`Documento com ID "${id}" não encontrado na coleção "Reagendado".`, {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
                 return;
             }
 
             const itemData = docSnapshot.data();
-
-            // Atualizar status e mover para "Analise"
             const targetRef = doc(db, "Analise", id);
             await setDoc(targetRef, { ...itemData, ...updatedData, status: "Analise" });
-            console.log("Documento movido para a coleção 'Analise'.");
 
-            // Remover da coleção anterior
+            toast.success("Documento movido para a coleção 'Analise'.", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
             await deleteDoc(sourceRef);
-            console.log("Documento removido da coleção 'Reagendado'.");
 
-            // Callback de sucesso
+            toast.success("Documento removido da coleção 'Reagendado'.", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
             if (onSuccess) onSuccess();
         } catch (error) {
-            console.error("Erro ao salvar o documento:", error);
+            toast.error("Erro ao salvar o documento: " + error.message, {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                pauseOnHover: true,
+                draggable: true,
+            });
         }
     };
 
@@ -122,7 +162,6 @@ const MaintenanceModal = ({ isVisible, onCancel, item, onSuccess }) => {
                 </div>
             </div>
         </div>
-    
     );
 };
 
