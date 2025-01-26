@@ -59,6 +59,13 @@ const MessageCreator = () => {
         messageBody: "",
     });
 
+    // Variáveis dinâmicas fixas
+    const variables = {
+        $nome: "João",
+        $horarioInicial: "10:00",
+        $horarioFinal: "12:00",
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prevState) => ({
@@ -99,10 +106,21 @@ const MessageCreator = () => {
     };
 
     const renderPreview = () => {
+        let previewContent = formData.messageBody || "Corpo da mensagem vazio.";
+
+        // Substituir variáveis dinâmicas no conteúdo
+        Object.keys(variables).forEach((key) => {
+            const regex = new RegExp(`\\${key}`, "g");
+            previewContent = previewContent.replace(
+                regex,
+                `<span class="bg-gray-300 dark:bg-gray-700 text-black dark:text-white px-1 rounded">${variables[key]}</span>`
+            );
+        });
+
         return (
             <div className="flex flex-col items-start space-y-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-sm mx-auto">
                 <div className="p-3 bg-blue-500 text-white rounded-lg shadow-lg max-w-full">
-                    <div dangerouslySetInnerHTML={{ __html: formData.messageBody || "Corpo da mensagem vazio." }} />
+                    <div dangerouslySetInnerHTML={{ __html: previewContent }} />
                 </div>
             </div>
         );
@@ -124,6 +142,20 @@ const MessageCreator = () => {
                         placeholder="Digite o título da mensagem"
                     />
                 </label>
+                <div className="mb-4">
+                    <h3 className="text-sm font-medium">Variáveis Dinâmicas Disponíveis:</h3>
+                    <ul className="list-disc ml-6 text-gray-800 dark:text-gray-200">
+                        <li>
+                            <span className="font-bold">$nome</span> — Substituído por: <span className="text-blue-500">{variables.$nome}</span>
+                        </li>
+                        <li>
+                            <span className="font-bold">$horarioInicial</span> — Substituído por: <span className="text-blue-500">{variables.$horarioInicial}</span>
+                        </li>
+                        <li>
+                            <span className="font-bold">$horarioFinal</span> — Substituído por: <span className="text-blue-500">{variables.$horarioFinal}</span>
+                        </li>
+                    </ul>
+                </div>
                 <h3 className="text-sm font-medium mb-2">Corpo da Mensagem:</h3>
                 <QuillEditor
                     content={formData.messageBody}

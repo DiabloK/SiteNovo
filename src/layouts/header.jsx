@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { ChevronsLeft, Search, Sun, Moon } from "lucide-react";
 import { db } from "@/utils/firebase"; // Firebase Config
-import { doc, getDoc } from "firebase/firestore";
+import { query, collection, where, getDocs, limit } from "firebase/firestore";
 import imagemlogin from "@/assets/logo-dark.png";
 
 export const Header = ({ collapsed, setCollapsed }) => {
@@ -26,37 +26,67 @@ export const Header = ({ collapsed, setCollapsed }) => {
         document.documentElement.classList.add(newTheme);
         localStorage.setItem("theme", newTheme);
     };
-
     const handleSearch = async (term) => {
         if (!term) {
             setResults([]); // Limpa os resultados se o termo for vazio
             return;
         }
-
+    
         setLoading(true);
-
+    
         try {
-            // Caminho para o documento específico
-            const docRef = doc(db, "protocolos", term); // `term` é o ID do documento, como "1347056"
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                // Documento encontrado
-                setResults([{ id: docSnap.id, ...docSnap.data() }]);
-            } else {
-                // Documento não encontrado
-                setResults([]);
-                console.log("Nenhum documento encontrado para:", term);
-            }
+            const lowerTerm = term.toString(); // Certifica-se de que o termo é string
+            const protocolosRef = collection(db, "protocolos");
+    
+            // Query 1: Buscar no campo "protocoloISP"
+            const queryProtocoloISP = query(
+                protocolosRef,
+                where("protocoloISP", ">=", lowerTerm),
+                where("protocoloISP", "<=", lowerTerm + "\uf8ff"),
+                limit(5)
+            );
+    
+            // Query 2: Buscar no campo "protocolo"
+            const queryProtocolo = query(
+                protocolosRef,
+                where("protocolo", ">=", lowerTerm),
+                where("protocolo", "<=", lowerTerm + "\uf8ff"),
+                limit(5)
+            );
+    
+            // Executa ambas as queries em paralelo
+            const [snapshotISP, snapshotProtocolo] = await Promise.all([
+                getDocs(queryProtocoloISP),
+                getDocs(queryProtocolo),
+            ]);
+    
+            // Extrai os documentos retornados
+            const resultsISP = snapshotISP.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+    
+            const resultsProtocolo = snapshotProtocolo.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+    
+            // Combina os resultados e remove duplicados
+            const combinedResults = [
+                ...resultsISP,
+                ...resultsProtocolo.filter(
+                    (protocol) =>
+                        !resultsISP.some((isp) => isp.id === protocol.id) // Remove duplicados
+                ),
+            ];
+    
+            setResults(combinedResults); // Atualiza os resultados no estado
         } catch (error) {
-            console.error("Erro ao buscar documento no Firebase:", error);
+            console.error("Erro ao buscar documentos:", error);
         } finally {
             setLoading(false);
         }
-    };
-
-
-
+    };  
     // Debounce para limitar as consultas ao Firebase
     useEffect(() => {
         const debounce = setTimeout(() => {
@@ -110,17 +140,18 @@ export const Header = ({ collapsed, setCollapsed }) => {
                                     key={protocol.id}
                                     className="cursor-pointer py-2 px-4 text-sm text-slate-900 hover:bg-slate-100 dark:text-slate-50 dark:hover:bg-slate-700"
                                     onClick={() =>
-                                        (window.location.href = `/visualizacao/${protocol.protocolo}`)
+                                        (window.location.href = `/visualizacao/${protocol.protocoloISP || protocol.protocolo || protocol.id}`)
                                     }
                                 >
-                                    {protocol.protocolo} {/* Exibe o campo "protocolo" */}
+                                    {protocol.protocoloISP || protocol.protocolo || protocol.id} {/* Exibe o valor relevante */}
                                 </li>
                             ))}
                         </ul>
+
+
                     )}
                 </div>
             </div>
-
             <div className="flex items-center gap-x-3">
                 <button className="btn-ghost size-10" onClick={handleSetTheme}>
                     {theme === "light" ? (
