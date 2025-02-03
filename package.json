@@ -18,6 +18,7 @@
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "echarts-for-react": "^3.0.2",
     "firebase": "^11.2.0",
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.2.0",
@@ -54,5 +55,17 @@
     "tailwindcss": "^3.4.11",
     "vite": "^5.4.1"
   },
-  "homepage": "."
+  "homepage": "http://.",
+  "description": "<br />\r <div align=\"center\">\r     <img src=\"public/favicon-light.svg\" style=\"vertical-align: middle;\" width=\"48\" height=\"48\"/>\r     <br />\r     <br />\r     <p>\r         Build a Modern Dashboard UI Design using React JS, TailwindCSS.\r </p>\r <a href=\"https://youtu.be/uHxZMmvQXHQ\">Watch Tutorial</a>",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DiabloK/SiteNovo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DiabloK/SiteNovo/issues"
+  }
 }

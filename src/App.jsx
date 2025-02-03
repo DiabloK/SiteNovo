@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { auth, db } from "@/utils/firebase"; // Importa auth e db do firebase.js
+import { auth, db } from "@/utils/firebase";
 import NotFoundPage from "@/routes/NotFoundPage";
 import { ThemeProvider } from "@/contexts/theme-context";
 import Layout from "@/routes/layout";
@@ -8,21 +8,27 @@ import DashboardPage from "@/routes/dashboard/page";
 import LoginPage from "@/routes/login/LoginPage";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Cadastro from "@/routes/dashboard/Cadastro/Cadastro";
-import ErrorContatosPage from "@/routes/ClientesErrors/ErrorContatosPage"; // Importa a página
-import VisualizacaoPage from "@/routes/visualizacao/protocolo"; // Página de visualização
+import ErrorContatosPage from "@/routes/ClientesErrors/ErrorContatosPage";
+import VisualizacaoPage from "@/routes/visualizacao/protocolo";
 import Usuario from "@/routes/usuario/usuario";
 import CadastrarUsuario from "@/routes/usuario/cadastrousuario";
 import EmailCriar from "@/routes/Templantes/Email/Criar";
 import Emaileditor from "@/routes/Templantes/Email/editor";
 import Mensagemeditor from "@/routes/Templantes/mensagem/editor";
 import MensagemCriar from "@/routes/Templantes/mensagem/criadormensagem";
-import { doc, getDoc } from "firebase/firestore"; // Importa Firestore
+import { doc, getDoc } from "firebase/firestore";
+
+// Novos imports para os gráficos:
+import Maingraficos from "@/routes/graficos/Maingraficos";
+import Grafico1 from "@/routes/Graficos/pages/Dex";
+import Grafico2 from "@/routes/Graficos/pages/GeralIndividual";
+import Grafico3 from "@/routes/Graficos/pages/Dex";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticação
-  const [loading, setLoading] = useState(true); // Estado de carregamento
-  const [initialized, setInitialized] = useState(false); // Estado de inicialização
-  const [userRole, setUserRole] = useState(null); // Papel do usuário
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     const initializeAuth = () => {
@@ -32,7 +38,6 @@ function App() {
           try {
             if (user.emailVerified) {
               console.log("Usuário autenticado com email verificado:", user.email);
-
               const userDoc = await getDoc(doc(db, "users", user.uid));
               if (userDoc.exists()) {
                 const role = userDoc.data().privilegio;
@@ -59,14 +64,15 @@ function App() {
           localStorage.clear();
         }
         setLoading(false);
-        setInitialized(true); // Define inicialização como concluída
+        setInitialized(true);
       });
 
-      return unsubscribe; // Remove o listener ao desmontar o componente
+      return unsubscribe;
     };
 
-    initializeAuth(); // Inicializa a autenticação
+    initializeAuth();
   }, []);
+
   const router = createBrowserRouter([
     {
       path: "/login",
@@ -75,11 +81,7 @@ function App() {
     {
       path: "/",
       element: (
-        <ProtectedRoute
-          isAuthenticated={isAuthenticated}
-          loading={loading}
-          initialized={initialized}
-        >
+        <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
           <Layout />
         </ProtectedRoute>
       ),
@@ -87,11 +89,7 @@ function App() {
         {
           index: true,
           element: (
-            <ProtectedRoute
-              isAuthenticated={isAuthenticated}
-              loading={loading}
-              initialized={initialized}
-            >
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
               <DashboardPage />
             </ProtectedRoute>
           ),
@@ -110,7 +108,7 @@ function App() {
           ),
         },
         {
-          path: "/ClientesErrors",
+          path: "ClientesErrors",
           element: (
             <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
               <ErrorContatosPage />
@@ -120,99 +118,127 @@ function App() {
         {
           path: "visualizacao/:protocolo",
           element: (
-            <ProtectedRoute
-              isAuthenticated={isAuthenticated}
-              loading={loading}
-              initialized={initialized}
-            >
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
               <VisualizacaoPage />
             </ProtectedRoute>
           ),
-        },{
-          path: "/Usuario", // Rota para a página de informações do usuário
+        },
+        {
+          path: "Usuario",
           element: (
-            <ProtectedRoute
-              isAuthenticated={isAuthenticated}
-              loading={loading}
-              initialized={initialized}
-            >
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
               <Usuario />
             </ProtectedRoute>
           ),
         },
         {
-          path: "/UsuarioCadastrar", // Rota para a página de cadastro de usuários
+          path: "UsuarioCadastrar",
           element: (
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
               loading={loading}
               initialized={initialized}
-              requiredRoles={["admin"]} // Somente admin pode acessar
+              requiredRoles={["admin"]}
             >
               <CadastrarUsuario />
             </ProtectedRoute>
           ),
         },
         {
-          path: "/Templates/Email/Criar", // Rota para a página de cadastro de usuários
+          path: "Templates/Email/Criar",
           element: (
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
               loading={loading}
               initialized={initialized}
-              requiredRoles={["admin"]} // Somente admin pode acessar
+              requiredRoles={["admin"]}
             >
               <EmailCriar />
             </ProtectedRoute>
           ),
         },
         {
-          path: "/Templates/Email/Editar", // Rota para a página de cadastro de usuários
+          path: "Templates/Email/Editar",
           element: (
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
               loading={loading}
               initialized={initialized}
-              requiredRoles={["admin"]} // Somente admin pode acessar
+              requiredRoles={["admin"]}
             >
               <Emaileditor />
             </ProtectedRoute>
           ),
         },
         {
-          path: "/Templates/WhatsApp/Editar", // Rota para a página de cadastro de usuários
+          path: "Templates/WhatsApp/Editar",
           element: (
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
               loading={loading}
               initialized={initialized}
-              requiredRoles={["admin"]} // Somente admin pode acessar
+              requiredRoles={["admin"]}
             >
               <Mensagemeditor />
             </ProtectedRoute>
           ),
         },
         {
-          path: "/Templates/WhatsApp/Criar", // Rota para a página de cadastro de usuários
+          path: "Templates/WhatsApp/Criar",
           element: (
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
               loading={loading}
               initialized={initialized}
-              requiredRoles={["admin"]} // Somente admin pode acessar
+              requiredRoles={["admin"]}
             >
               <MensagemCriar />
             </ProtectedRoute>
           ),
         },
+        // Rota para gráficos (pasta graficos)
+        {
+          path: "Graficos",
+          element: (
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
+              <Maingraficos />
+            </ProtectedRoute>
+          ),
+          children: [
+            {
+              path: "Dex",
+              element: (
+                <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
+                  <Grafico1 />
+                </ProtectedRoute>
+              ),
+            },
+            {
+              path: "Geral",
+              element: (
+                <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
+                  <Grafico2 />
+                </ProtectedRoute>
+              ),
+            },
+            {
+              path: "3",
+              element: (
+                <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading} initialized={initialized}>
+                  <Grafico3 />
+                </ProtectedRoute>
+              ),
+            },
+          ],
+        },
       ],
     },
-    // Adiciona a rota para capturar páginas não encontradas
     {
       path: "*",
       element: <NotFoundPage />,
     },
   ]);
+
   return (
     <ThemeProvider storageKey="theme">
       <RouterProvider router={router} />
