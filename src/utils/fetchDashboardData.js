@@ -1,55 +1,141 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 
-// Função para buscar os dados do Firestore
-export const fetchDashboardData = async () => {
-  const collections = ["Analise", "Ativos", "Pendente", "Reagendado"]; // Coleções para buscar
-  const dataCounts = {}; // Objeto para armazenar os contadores
-  const allData = []; // Array para armazenar os documentos
+// Função para observar os dados do Firestore em tempo real
+export const fetchDashboardData = (callback, errorCallback) => {
+  const collections = ["Analise", "Ativos", "Pendente", "Reagendado"];
+  const unsubscribes = [];
+  const dataCounts = {}; // Contadores por coleção
+  let allData = []; // Dados combinados de todas as coleções
+  let totalClientesAfetados = 0; // Para acumular os clientes afetados dos documentos "Ativos"
 
-  try {
-    // Usa Promise.all para buscar todas as coleções simultaneamente
-    await Promise.all(
-      collections.map(async (col) => {
-        try {
-          const querySnapshot = await getDocs(collection(db, col)); // Busca a coleção
-          dataCounts[col] = querySnapshot.size; // Armazena o número de documentos na coleção
+  // Para cada coleção, criamos um listener que atualiza os dados
+  collections.forEach((col) => {
+    const colRef = collection(db, col);
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        // Atualiza o contador para esta coleção
+        dataCounts[col] = snapshot.size;
 
-          // Processa cada documento
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        // Processa os documentos desta coleção
+        const colData = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
 
-            // Adiciona os dados ao array allData
-            allData.push({
-              id: doc.id, // ID do documento
-              tipo: col, // Nome da coleção (tipo do documento)
-              status: data.status || "indefinido", // Status do protocolo
-              protocoloISP: data.protocoloISP || "—", // Nome do protocolo
-              horarioInicial: data.horarioInicial || null, // Horário inicial
-              horarioPrevisto: data.horarioPrevisto || null, // Horário previsto
-              clientesAfetados: data.clientesAfetados || [], // Clientes afetados
-              email: data.email || false, // Se há email associado
-              whatzap: data.whatzap || false, // Se há WhatsApp associado
-              regional: data.regional || "—", // Região associada
-              ...data, // Adiciona todos os outros campos do documento
-            });
+          // Se for da coleção "Ativos", acumula os clientes afetados
+          if (col === "Ativos") {
+            const clientesDoc = Number(data.total_afetados) || 0;
+            totalClientesAfetados += clientesDoc;
+          }
+
+          colData.push({
+            id: doc.id,
+            tipo: col,
+            status: data.status || "indefinido",
+            protocoloISP: data.protocoloISP || "—",
+            horarioInicial: data.horarioInicial || null,
+            horarioPrevisto: data.horarioPrevisto || null,
+            clientesAfetados: data.total_afetados,
+            email: data.email || false,
+            whatzap: data.whatzap || false,
+            regional: data.regional || "—",
+            // Inclua outros campos conforme necessário
+            ...data,
           });
-        } catch (err) {
-          console.error(`Erro ao buscar a coleção "${col}":`, err); // Log de erro para uma coleção específica
-        }
-      })
+        });
+
+        // Atualiza os dados (aqui usamos uma abordagem simples: refazemos o allData para essa coleção)
+        const otherData = allData.filter((item) => item.tipo !== col);
+        allData = [...otherData, ...colData];
+
+        // Atualiza também o total de "ClientesAfetados"
+        dataCounts.ClientesAfetados = totalClientesAfetados;
+
+        // Chama o callback para atualizar os estados do componente
+        callback({ counts: { ...dataCounts }, data: [...allData] });
+      },
+      (error) => {
+        console.error(`Erro ao escutar a coleção ${col}:`, error);
+        if (errorCallback) errorCallback(error);
+      }
     );
+    unsubscribes.push(unsubscribe);
+  });
 
-    // Loga os dados carregados para depuração
-    console.log("Dados carregados com sucesso:", { counts: dataCounts, data: allData });
-
-    // Retorna os contadores e os dados para o frontend
-    return { counts: dataCounts, data: allData };
-  } catch (error) {
-    // Loga o erro geral se ocorrer
-    console.error("Erro geral ao buscar dados do Firebase:", error);
-
-    // Retorna valores padrão para evitar quebra
-    return { counts: {}, data: [] };
+  // Retorna uma função que cancela todos os listeners quando necessário
+  return () => {
+    unsubscribes.forEach((unsubscribe) => unsubscribe());
+  };
+};
+export const subscribeDashboardData = (callback, errorCallback) => {
+  if (typeof callback !== "function") {
+    console.error("subscribeDashboardData: callback is not a function");
+    return () => {}; // Retorna uma função "dummy" para evitar erros
   }
+
+  const collections = ["Analise", "Ativos", "Pendente", "Reagendado"];
+  const unsubscribes = [];
+  const dataCounts = {};
+  let allData = [];
+  let totalClientesAfetados = 0;
+
+  collections.forEach((col) => {
+    const colRef = collection(db, col);
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        dataCounts[col] = snapshot.size;
+
+        // Reinicia a contagem para a coleção "Ativos"
+        if (col === "Ativos") {
+          totalClientesAfetados = 0;
+        }
+
+        const colData = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (col === "Ativos") {
+            const clientesDoc = Number(data.total_afetados) || 0;
+            totalClientesAfetados += clientesDoc;
+          }
+          colData.push({
+            id: doc.id,
+            tipo: col,
+            status: data.status || "indefinido",
+            protocoloISP: data.protocoloISP || "—",
+            horarioInicial: data.horarioInicial || null,
+            horarioPrevisto: data.horarioPrevisto || null,
+            clientesAfetados: data.total_afetados,
+            email: data.email || false,
+            whatzap: data.whatzap || false,
+            regional: data.regional || "—",
+            ...data,
+          });
+        });
+
+        // Atualiza os dados combinados para essa coleção
+        const otherData = allData.filter((item) => item.tipo !== col);
+        allData = [...otherData, ...colData];
+
+        dataCounts.ClientesAfetados = totalClientesAfetados;
+
+        // Só chama o callback se ele for realmente uma função
+        if (typeof callback === "function") {
+          callback({ counts: { ...dataCounts }, data: [...allData] });
+        }
+      },
+      (error) => {
+        console.error(`Erro ao escutar a coleção ${col}:`, error);
+        if (typeof errorCallback === "function") {
+          errorCallback(error);
+        }
+      }
+    );
+    unsubscribes.push(unsubscribe);
+  });
+
+  return () => {
+    unsubscribes.forEach((unsubscribe) => unsubscribe());
+  };
 };

@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from "react";
+import { useState, forwardRef } from "react";
 import { NavLink } from "react-router-dom";
 import { navbarLinks } from "@/constants";
 import { ChevronDown, ChevronRight } from "lucide-react";

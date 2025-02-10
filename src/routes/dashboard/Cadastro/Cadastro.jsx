@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { getFirestore, collection, doc, getDoc, setDoc } from "firebase/firestore"; // Importações Firestore
-import { ToastContainer, toast, Bounce } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import { getDadosCliente, enviarParaCadastro, getClientesAfetados } from "@/utils/apiClient";
 
 const Cadastro = () => {
     const [formData, setFormData] = useState({
@@ -48,6 +49,7 @@ const Cadastro = () => {
         "CNI",
         "RSL",
         "IRI",
+        "ITH",
     ];
 
     const fetchPontosAcesso = async () => {
@@ -243,7 +245,7 @@ const Cadastro = () => {
         e.preventDefault();
         const db = getFirestore();
 
-        // Validação dos dados
+        // Validação dos dados (supondo que essa função já esteja implementada)
         const erro = await validarFormulario(formData, selectedPontos, db);
         if (erro) {
             toast.error(erro);
@@ -253,22 +255,16 @@ const Cadastro = () => {
         try {
             const loadingToastId = toast.loading("Processando, por favor aguarde...");
 
-            // Adicionar pontos de acesso com base nas cidades selecionadas
+            // Atualiza os pontos selecionados se a opção de cidades estiver ativa
             if (mostrarCidades && formData.cidadesSelecionadas.length > 0) {
-                const pontosFiltrados = pontosAcesso.filter((ponto) =>
-                    formData.cidadesSelecionadas.some((cidade) => cidade.nome === ponto.origem)
-                );
+                const pontosFiltrados = pontosAcesso.filter((ponto) => formData.cidadesSelecionadas.some((cidade) => cidade.nome === ponto.origem));
                 setSelectedPontos((prev) => [...prev, ...pontosFiltrados]);
             }
 
             // Divisão da manutenção, se aplicável
             let divisaoManutencao = null;
             if (formData.manutencaoDividida && formData.partesManutencao > 1) {
-                divisaoManutencao = dividirManutencao(
-                    formData.horarioInicial,
-                    formData.horarioPrevisto,
-                    formData.partesManutencao
-                );
+                divisaoManutencao = dividirManutencao(formData.horarioInicial, formData.horarioPrevisto, formData.partesManutencao);
             }
 
             let pontosFiltrados = [];
@@ -276,10 +272,42 @@ const Cadastro = () => {
                 pontosFiltrados = await filtrarPontosPorCidade(loadingToastId);
             }
 
+            // Combina os pontos de acesso selecionados e filtrados
             const pontosFinal = [...new Set([...selectedPontos, ...pontosFiltrados])];
-            const Clientesafetados=[];
-            const afetados = 0;
-            // Preparar os dados para salvar
+
+            // ---------------------------------------------------------------------------------
+            // Coleta dos dados dos clientes para cada ponto usando a função getDadosCliente
+            // ---------------------------------------------------------------------------------
+
+            const clientesAfetadosTotal = [];
+
+            for (const ponto of pontosFinal) {
+                try {
+                    console.log(`Enviando requisição para o ponto: ${ponto.codcon} com origem: ${ponto.origem}`);
+                    // Aqui, getDadosCliente retorna um array de clientes transformados
+                    const clientes = await getDadosCliente(ponto.codcon, ponto.origem);
+                    console.log(`Retorno para o ponto ${ponto.codcon}:`, clientes);
+
+                    if (Array.isArray(clientes) && clientes.length > 0) {
+                        clientesAfetadosTotal.push(...clientes);
+                    } else {
+                        console.log(`Nenhum resultado válido para o ponto ${ponto.codcon}`);
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar dados do cliente para o ponto:", ponto.codcon, error);
+                    continue;
+                }
+            }
+
+            console.log("Clientes Afetados Total Acumulado:", clientesAfetadosTotal);
+
+            // Sem remover duplicatas, o total afetados será simplesmente:
+            const totalAfetados = clientesAfetadosTotal.length;
+
+            console.log("Total Afetados:", totalAfetados);
+            // ---------------------------------------------------------------------------------
+            // Monta o objeto de dados do cadastro, agora com os dados dos clientes afetados
+            // ---------------------------------------------------------------------------------
             const dados = {
                 tipo: formData.tipo,
                 protocoloISP: formData.protocoloISP,
@@ -294,13 +322,19 @@ const Cadastro = () => {
                 Dividida: divisaoManutencao || null,
                 email: false,
                 whatzap: false,
-                total_afetados: afetados,
+                total_afetados: totalAfetados,
                 Cometario: [],
                 status: "Analise",
-                Clientesafetados: Clientesafetados || null,
+                Clientesafetados: clientesAfetadosTotal,
                 dataCriacao: new Date().toISOString(),
             };
 
+            // Neste cenário, não é necessário enviar os dados para outro endpoint externo,
+            // pois o objetivo é coletar os dados dos clientes e o total afetado para salvar no seu BD.
+
+            // ---------------------------------------------------------------------------------
+            // Salva os dados no Firestore (em suas coleções, conforme sua lógica)
+            // ---------------------------------------------------------------------------------
             // Salvar na coleção `Analise`
             const analiseRef = doc(collection(db, "Analise"));
             await setDoc(analiseRef, dados);
@@ -313,7 +347,6 @@ const Cadastro = () => {
             const protocoloRef = doc(db, "protocolos", formData.protocoloISP);
             await setDoc(protocoloRef, { ...dados, id: analiseRef.id });
 
-            // Notificação de sucesso
             toast.update(loadingToastId, {
                 render: "Cadastro realizado com sucesso!",
                 type: "success",
@@ -321,16 +354,11 @@ const Cadastro = () => {
                 autoClose: 3000,
             });
 
-            // Redirecionar para o Dashboard
+            // Redireciona para o Dashboard
             navigate("/");
         } catch (error) {
             console.error("Erro ao cadastrar:", error);
-            toast.update(loadingToastId, {
-                render: "Erro ao cadastrar. Tente novamente.",
-                type: "error",
-                isLoading: false,
-                autoClose: 5000,
-            });
+            toast.error("Erro ao cadastrar. Tente novamente.");
         }
     };
 
@@ -361,14 +389,15 @@ const Cadastro = () => {
                     pauseOnHover
                     theme={document.documentElement.classList.contains("dark") ? "dark" : "light"}
                 />
-                <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-slate-50">
-                    Cadastro de Manutenção
-                </h1>
+                <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-slate-50">Cadastro de Manutenção</h1>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-6"
+                >
                     {/* Tipo */}
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Tipo:</label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Tipo:</label>
                         <select
                             name="tipo"
                             value={formData.tipo}
@@ -383,7 +412,7 @@ const Cadastro = () => {
 
                     {/* Protocolo ISP */}
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Protocolo ISP:</label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Protocolo ISP:</label>
                         <input
                             type="text"
                             name="protocoloISP"
@@ -397,7 +426,7 @@ const Cadastro = () => {
                     {/* Horários */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Horário Inicial:</label>
+                            <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Horário Inicial:</label>
                             <input
                                 type="datetime-local"
                                 name="horarioInicial"
@@ -407,7 +436,7 @@ const Cadastro = () => {
                             />
                         </div>
                         <div>
-                            <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Horário Previsto:</label>
+                            <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Horário Previsto:</label>
                             <input
                                 type="datetime-local"
                                 name="horarioPrevisto"
@@ -419,9 +448,7 @@ const Cadastro = () => {
                     </div>
 
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
-                            Ponto de Acesso:
-                        </label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Ponto de Acesso:</label>
                         <input
                             type="text"
                             placeholder="Pesquisar ponto de acesso..."
@@ -436,10 +463,11 @@ const Cadastro = () => {
                                 {searchResults.map((ponto) => (
                                     <div
                                         key={ponto.codcon}
-                                        className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${selectedPontos.some((item) => item.codcon === ponto.codcon)
-                                            ? "bg-blue-100 dark:bg-blue-900"
-                                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                                            }`}
+                                        className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${
+                                            selectedPontos.some((item) => item.codcon === ponto.codcon)
+                                                ? "bg-blue-100 dark:bg-blue-900"
+                                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        }`}
                                         onClick={() => handleSelectPonto(ponto)}
                                     >
                                         <span className="text-slate-900 dark:text-slate-50">{ponto.nome}</span>
@@ -451,9 +479,7 @@ const Cadastro = () => {
 
                         {/* Exibir Pontos de Acesso Selecionados */}
                         <div className="mt-4">
-                            <h2 className="mb-2 font-bold text-slate-900 dark:text-slate-50">
-                                Pontos de Acesso Selecionados:
-                            </h2>
+                            <h2 className="mb-2 font-bold text-slate-900 dark:text-slate-50">Pontos de Acesso Selecionados:</h2>
                             {selectedPontos.length > 0 ? (
                                 <ul className="ml-4 list-disc space-y-1">
                                     {selectedPontos.map((item) => (
@@ -461,25 +487,19 @@ const Cadastro = () => {
                                             key={item.codcon}
                                             className="text-slate-900 dark:text-slate-50"
                                         >
-                                            {item.nome} -{" "}
-                                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                                {item.origem}
-                                            </span>
+                                            {item.nome} - <span className="text-sm text-gray-500 dark:text-gray-400">{item.origem}</span>
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-gray-500 dark:text-gray-400">
-                                    Nenhum ponto selecionado ainda.
-                                </p>
+                                <p className="text-gray-500 dark:text-gray-400">Nenhum ponto selecionado ainda.</p>
                             )}
                         </div>
                     </div>
 
-
                     {/* Regional */}
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Regional:</label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Regional:</label>
                         <select
                             name="regional"
                             value={formData.regional}
@@ -487,7 +507,10 @@ const Cadastro = () => {
                             className="w-full rounded border border-gray-300 p-2 text-slate-900 dark:border-gray-700 dark:bg-gray-700 dark:text-slate-50"
                         >
                             {regionais.map((regional) => (
-                                <option key={regional} value={regional}>
+                                <option
+                                    key={regional}
+                                    value={regional}
+                                >
                                     {regional}
                                 </option>
                             ))}
@@ -496,9 +519,7 @@ const Cadastro = () => {
 
                     {/* Manutenção Dividida */}
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
-                            Manutenção Dividida:
-                        </label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Manutenção Dividida:</label>
                         <div className="flex items-center space-x-2">
                             <input
                                 type="checkbox"
@@ -512,9 +533,7 @@ const Cadastro = () => {
 
                         {formData.manutencaoDividida && (
                             <div className="mt-4">
-                                <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
-                                    Quantidade de Partes:
-                                </label>
+                                <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Quantidade de Partes:</label>
                                 <input
                                     type="number"
                                     name="partesManutencao"
@@ -542,9 +561,7 @@ const Cadastro = () => {
 
                         {mostrarCidades && (
                             <div className="mt-4">
-                                <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">
-                                    Seleção de Cidade (para Evento):
-                                </label>
+                                <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Seleção de Cidade (para Evento):</label>
                                 <input
                                     type="text"
                                     placeholder="Pesquisar cidade..."
@@ -558,10 +575,11 @@ const Cadastro = () => {
                                     {visibleCidades.map((cidade) => (
                                         <div
                                             key={cidade.id}
-                                            className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${formData.cidadesSelecionadas.some((c) => c.id === cidade.id)
-                                                ? "bg-blue-100 dark:bg-blue-900"
-                                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                }`}
+                                            className={`flex cursor-pointer items-center justify-between rounded p-2 transition-colors ${
+                                                formData.cidadesSelecionadas.some((c) => c.id === cidade.id)
+                                                    ? "bg-blue-100 dark:bg-blue-900"
+                                                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            }`}
                                             onClick={() => handleCidadeChange(cidade)}
                                         >
                                             <span className="text-slate-900 dark:text-slate-50">{cidade.nome}</span>
@@ -585,7 +603,7 @@ const Cadastro = () => {
 
                     {/* Observação */}
                     <div>
-                        <label className="block mb-2 font-bold text-slate-900 dark:text-slate-50">Observação:</label>
+                        <label className="mb-2 block font-bold text-slate-900 dark:text-slate-50">Observação:</label>
                         <textarea
                             name="observacao"
                             value={formData.observacao}

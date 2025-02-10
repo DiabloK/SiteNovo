@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getDocs, collection } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import { Clipboard, Download } from "lucide-react";
@@ -108,8 +108,8 @@ const ReportModal = ({ isOpen, onClose }) => {
         message += `Última info: ${event.lastInfo}\n`;
         message += `Total de Clientes Afetados: ${event.totalAfetados}\n`;
         message += `Pontos de Acesso: ${event.pontosAcesso}\n`;
-        message += `Contatos: WhatsApp: ${event.whatzapStatus} | E-mail: ${event.emailStatus}\n`;
-        message += "----------------------------\n";
+        message += `Contatos: WhatsApp: ${event.whatzapStatus}\n`;
+        message += `E-mail: ${event.emailStatus}\n`;
       });
     } else {
       message += "GESTÃO DE FALHAS REDE DE ACESSO\n\nNenhum evento registrado no momento.\n";
@@ -124,8 +124,8 @@ const ReportModal = ({ isOpen, onClose }) => {
         message += `Última info: ${event.lastInfo}\n`;
         message += `Total de Clientes Afetados: ${event.totalAfetados}\n`;
         message += `Pontos de Acesso: ${event.pontosAcesso}\n`;
-        message += `Contatos: WhatsApp: ${event.whatzapStatus} | E-mail: ${event.emailStatus}\n`;
-        message += "----------------------------\n";
+        message += `Contatos: WhatsApp: ${event.whatzapStatus}\n`;
+        message += `E-mail: ${event.emailStatus}\n`;
       });
     } else {
       message += "\nMANUTENÇÕES PROGRAMADAS\n\nNenhuma manutenção programada registrada no momento.\n";
