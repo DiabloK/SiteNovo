@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/utils/firebase"; // Firebase Auth
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/utils/firebase";
 import { toast } from "react-toastify";
 
 const Usuario = () => {
@@ -11,13 +12,9 @@ const Usuario = () => {
   });
 
   const handleResetPassword = async () => {
-    // Exibe uma notificação de carregamento
     const loadingToastId = toast.loading("Enviando e-mail de redefinição...");
-  
     try {
       await sendPasswordResetEmail(auth, userData.email);
-  
-      // Atualiza o toast para "sucesso"
       toast.update(loadingToastId, {
         render: "E-mail de redefinição enviado com sucesso!",
         type: "success",
@@ -27,8 +24,6 @@ const Usuario = () => {
       });
     } catch (error) {
       console.error("Erro ao enviar redefinição de senha:", error);
-  
-      // Atualiza o toast para "erro"
       toast.update(loadingToastId, {
         render: "Erro ao enviar redefinição. Tente novamente.",
         type: "error",
@@ -38,19 +33,37 @@ const Usuario = () => {
       });
     }
   };
-  useEffect(() => {
-    const role = localStorage.getItem("userRole");
-    const email = localStorage.getItem("userEmail");
 
-    if (role && email) {
-      setUserData({
-        nome: "Nome do Usuário", // Substituir pelo nome real do Firestore, se necessário
-        email: email,
-        privilegios: [role],
-      });
+  useEffect(() => {
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const docRef = doc(db, "users", userId);
+      getDoc(docRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const privilegiosRaw = data.privilegio || data.privilegios;
+            const privilegiosArray = Array.isArray(privilegiosRaw)
+              ? privilegiosRaw
+              : privilegiosRaw
+              ? [privilegiosRaw]
+              : [];
+  
+            setUserData({
+              nome: data.nome || "Nome não encontrado",
+              email: data.email || "E-mail não encontrado",
+              privilegios: privilegiosArray,
+            });
+          } else {
+            console.log("Documento do usuário não encontrado");
+          }
+        })
+        .catch((error) => {
+          console.error("Erro ao buscar dados do usuário:", error);
+        });
     }
   }, []);
-
+  
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="w-full max-w-4xl rounded-lg bg-white p-10 shadow-lg dark:bg-gray-800">

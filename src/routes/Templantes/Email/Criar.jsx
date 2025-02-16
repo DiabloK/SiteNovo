@@ -59,7 +59,17 @@ const EmailCreator = () => {
         horarioFinal: "12:00",
     });
 
-    const gifOptions = [{ name: "GGNET", src: gif1 }];
+    const gifOptions = [
+        {
+          name: "GGNET",
+          src: "https://firebasestorage.googleapis.com/v0/b/paymiua.firebasestorage.app/o/ggnet.gif?alt=media&token=f12f68a9-bf02-465c-ba41-9c7e5aeb3648"
+        },
+        {
+            name: "ALT",
+            src: "https://firebasestorage.googleapis.com/v0/b/paymiua.firebasestorage.app/o/acessoline_logo.jpg?alt=media&token=002782e4-0ebb-4b9e-be03-7a1c92247f92"
+          }
+      ];
+      ;
 
     const variables = {
         $nome: formData.nome,
@@ -84,16 +94,18 @@ const EmailCreator = () => {
     };
 
     const handleSave = async () => {
+        // Conteúdo final do editor
         const finalContent = formData.content;
-
-        // Salvar o template com variáveis dinâmicas intactas
+    
+        // Cria o objeto com os dados do template, incluindo o GIF selecionado
         const templateData = {
             emailTitle: formData.emailTitle,
             previewTitle: formData.previewTitle,
-            content: formData.content, // Mantém as variáveis dinâmicas ($nome, etc.)
+            content: formData.content, // Conteúdo com as variáveis dinâmicas intactas
+            selectedGif: formData.selectedGif, // Adicionado para salvar o GIF selecionado
             variables: Object.keys(variables), // Armazena as variáveis para referência futura
         };
-
+    
         try {
             const docRef = doc(db, "email", formData.emailTitle || "templateSemTitulo");
             await setDoc(docRef, templateData);
@@ -121,6 +133,7 @@ const EmailCreator = () => {
             });
         }
     };
+    
 
 
     const renderPreview = () => {

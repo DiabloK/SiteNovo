@@ -86,12 +86,14 @@ export function EmailModal({ isVisible, item, onCancel }) {
                         Codigo: clienteDados.Codigo,
                         Origem: clienteDados.Origem,
                     },
+                    selectedGif: selectedTemplate.selectedGif // 🔹 Agora enviamos o GIF!
                 }),
             })
+            
                 .then(async (response) => {
                     const responseData = await response.json();
                     if (response.ok) {
-                        toast.success("E-mails enfileirados com sucesso!");
+                      console.log("ok")
                     } else {
                         toast.error(`Erro ao enfileirar: ${responseData.error}`);
                     }
@@ -109,58 +111,70 @@ export function EmailModal({ isVisible, item, onCancel }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-96 rounded-lg bg-white p-6 dark:bg-gray-800">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Enviar E-mail</h2>
-
-                <div className="mt-4">
-                    <label htmlFor="templateSelect" className="block text-gray-700 dark:text-gray-300">
-                        Selecione um Template:
-                    </label>
-                    <select
-                        id="templateSelect"
-                        onChange={handleTemplateChange}
-                        className="mt-2 w-full rounded border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                    >
-                        <option value="">Selecione</option>
-                        {templates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                                {template.emailTitle}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="mt-4">
-                    <label htmlFor="subjectInput" className="block text-gray-700 dark:text-gray-300">
-                        Assunto:
-                    </label>
-                    <input
-                        type="text"
-                        id="subjectInput"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        className="mt-2 w-full rounded border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                        placeholder="Digite o assunto do e-mail"
-                    />
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-4">
-                    <button
-                        onClick={onCancel}
-                        disabled={loading}
-                        className="rounded bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handleSend}
-                        disabled={loading}
-                        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500"
-                    >
-                        {loading ? "Enviando..." : "Enviar"}
-                    </button>
-                </div>
+          <div className="w-96 rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Enviar E-mail
+            </h2>
+      
+            {/* Seleção de Template */}
+            <div className="mt-4">
+              <label
+                htmlFor="templateSelect"
+                className="block text-sm font-medium text-gray-900 dark:text-gray-100"
+              >
+                Selecione um Template:
+              </label>
+              <select
+                id="templateSelect"
+                onChange={handleTemplateChange}
+                className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 py-2 px-3 shadow-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+              >
+                <option value="">Selecione</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.emailTitle}
+                  </option>
+                ))}
+              </select>
             </div>
+      
+            {/* Campo de Assunto */}
+            <div className="mt-4">
+              <label
+                htmlFor="subjectInput"
+                className="block text-sm font-medium text-gray-900 dark:text-gray-100"
+              >
+                Assunto:
+              </label>
+              <input
+                type="text"
+                id="subjectInput"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Digite o assunto do e-mail"
+                className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 py-2 px-3 shadow-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700"
+              />
+            </div>
+      
+            {/* Botões */}
+            <div className="mt-6 flex justify-end space-x-4">
+              <button
+                onClick={onCancel}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-400 dark:hover:bg-blue-500"
+              >
+                {loading ? "Enviando..." : "Enviar"}
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      );
+      
 }

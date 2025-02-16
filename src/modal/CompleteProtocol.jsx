@@ -217,20 +217,32 @@ const CompleteProtocolModal = ({ item, isVisible, onCancel, onComplete }) => {
                     await deleteDoc(ativoRef); // Excluir o documento de "Ativos"
                 }
             }
-
             else {
-                // Manutenção normal (não dividida)
-                for (const colecao of colecoes) { // Alterado aqui: nome correto
-                    const docRef = doc(db, colecao, item.id);
+                for (const colecao of colecoes) {
+                    let documentId;
+                    
+                    if (colecao === "protocolos") {
+                        // Para protocolos, usamos o identificador 'protocoloISP'
+                        if (!item.protocoloISP) {
+                            console.warn(`protocoloISP não fornecido para a coleção "${colecao}".`);
+                            continue;
+                        }
+                        documentId = item.protocoloISP;
+                    } else {
+                        // Para outras coleções (ex: "manutencao"), usamos o item.id
+                        documentId = item.id;
+                    }
+                    
+                    const docRef = doc(db, colecao, documentId);
                     const docSnapshot = await getDoc(docRef);
-
+                
                     if (docSnapshot.exists()) {
                         const dados = docSnapshot.data();
                         await setDoc(
                             docRef,
                             {
                                 ...dados,
-                                status: statusAtualizado,
+                                status: 'Concluído',
                                 horarioFinal,
                                 motivo,
                                 forcaMaior,
@@ -239,10 +251,10 @@ const CompleteProtocolModal = ({ item, isVisible, onCancel, onComplete }) => {
                             { merge: true }
                         );
                     } else {
-                        console.warn(`Documento com ID "${item.id}" não encontrado na coleção "${colecao}".`);
+                        console.warn(`Documento com ID "${documentId}" não encontrado na coleção "${colecao}".`);
                     }
                 }
-                // Excluir o documento de "Ativos"
+                
                 await deleteDoc(ativoRef);
             }
 
