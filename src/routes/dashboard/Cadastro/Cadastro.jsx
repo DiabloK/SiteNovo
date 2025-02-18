@@ -544,7 +544,7 @@ const Cadastro = () => {
         Dividida: divisaoManutencao || null,
         email: false,
         whatzap: false,
-        total_afetados: totalAfetados,
+        total_afetados: totalAfetados || 0,
         Clientesafetados: clientesAfetadosTotal,
         Cometario: [],
         status: "Analise",

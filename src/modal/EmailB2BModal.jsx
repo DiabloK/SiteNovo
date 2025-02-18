@@ -26,7 +26,7 @@ export default function EmailB2BModal({ isVisible, item, onCancel }) {
   // Atualiza o template selecionado e define o título do e-mail automaticamente
   const handleTemplateChange = (e) => {
     const selectedId = e.target.value;
-    const template = templates.find((t) => t.id === selectedId);
+    const template = templates.find((t) => String(t.id) === selectedId);
     setSelectedTemplate(template);
     setSubject(template ? template.emailTitle : "");
   };
@@ -34,8 +34,8 @@ export default function EmailB2BModal({ isVisible, item, onCancel }) {
   const handleSend = (e) => {
     e.preventDefault();
 
-    // Validação de dados
-    if (!selectedTemplate || !item || !item.Clientesafetados || item.Clientesafetados.length === 0) {
+    // Validação de dados para B2B utilizando o campo emailB2B
+    if (!selectedTemplate || !item || !item.emailB2B) {
       toast.error("Erro: Selecione um template e verifique os dados do cliente.");
       return;
     }
@@ -45,10 +45,34 @@ export default function EmailB2BModal({ isVisible, item, onCancel }) {
       return;
     }
 
-    // Filtra os clientes que possuem e-mail válido
-    const destinatarios = item.Clientesafetados
-      .filter((cliente) => cliente.Email && cliente.Email.includes("@"))
-      .map((cliente) => cliente.Email);
+    // Converte emailB2B para um array de e-mails válidos, tratando tanto string quanto array
+    let destinatarios = [];
+
+    if (Array.isArray(item.emailB2B)) {
+      destinatarios = item.emailB2B
+        .map((el) => {
+          // Se for string, retorna o próprio valor
+          if (typeof el === "string") return el;
+          // Se for objeto e possuir a propriedade Email, retorna o valor dela
+          else if (el && typeof el === "object" && el.Email) return el.Email;
+          return null;
+        })
+        .filter(
+          (email) =>
+            typeof email === "string" &&
+            email.trim() !== "" &&
+            email.includes("@")
+        )
+        .map((email) => email.trim());
+    } else if (typeof item.emailB2B === "string") {
+      destinatarios = item.emailB2B
+        .split(",")
+        .map((email) => email.trim())
+        .filter((email) => email !== "" && email.includes("@"));
+    } else {
+      toast.error("Erro: O campo emailB2B não está no formato esperado.");
+      return;
+    }
 
     if (destinatarios.length === 0) {
       toast.error("Erro: Nenhum cliente tem um e-mail válido.");
@@ -67,11 +91,6 @@ export default function EmailB2BModal({ isVisible, item, onCancel }) {
     onCancel(); // Fecha o modal imediatamente
 
     destinatarios.forEach((email) => {
-      const clienteDados =
-        item.Clientesafetados.find(
-          (c) => c.Email && c.Email.toLowerCase() === email.toLowerCase()
-        ) || {};
-
       fetch("http://172.29.3.210:6060/enviar-email-b2b", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,12 +100,7 @@ export default function EmailB2BModal({ isVisible, item, onCancel }) {
           text: selectedTemplate.content,
           html: selectedTemplate.content,
           dadosManutencao,
-          item: {
-            Email: email,
-            Nome: clienteDados.Nome,
-            Codigo: clienteDados.Codigo,
-            Origem: clienteDados.Origem,
-          },
+          item: { Email: email }, // Adapte conforme os dados disponíveis
           selectedGif: selectedTemplate.selectedGif, // Envia também o GIF, se houver
         }),
       })

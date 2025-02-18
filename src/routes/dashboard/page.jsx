@@ -25,15 +25,18 @@ import DeleteModal from "@/modal/DeleteModal";
 import CompleteProtocolModal from "@/modal/CompleteProtocol";
 import MaintenanceModal from "@/modal/ReagedadoModal";
 import CompleteProtocolReagedadoModal from "@/modal/CompleteReagedado";
-
-// Import da função ajustada – certifique-se de que o caminho esteja correto
 import { subscribeDashboardData } from "@/utils/fetchDashboardData";
-
 import { EmailModal } from "@/modal/EmailModal";
 import { WhatsAppModal } from "@/modal/WhatsAppModal";
 import DigisacModal from "@/modal/DigisacModal";
 import EmailB2BModal from "@/modal/EmailB2BModal";
 import NewActionModal from "@/modal/ReagendarModal";
+
+// Import dos 4 modais de aprovação separados
+import MonitoringApprovalModal from "@/modal/MonitoringApprovalModal";
+import QualityApprovalModal from "@/modal/QualityApprovalModal";
+import NocApprovalModal from "@/modal/NocApprovalModal";
+import ConselhoApprovalModal from "@/modal/ConselhoApprovalModal";
 
 const DashboardPage = () => {
     const [data, setData] = useState([]);
@@ -43,7 +46,7 @@ const DashboardPage = () => {
     const [activeFilter, setActiveFilter] = useState("Analise");
     const navigate = useNavigate();
 
-    // Estados dos modais
+    // Estados dos modais existentes
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState(null);
     const [showAdvanceModal, setShowAdvanceModal] = useState(false);
@@ -72,6 +75,13 @@ const DashboardPage = () => {
     const [showNewActionModal, setShowNewActionModal] = useState(false);
     const [newActionData, setNewActionData] = useState(null);
 
+    // Estados para os modais de aprovação (fluxo Requisição)
+    const [showMonitoringApprovalModal, setShowMonitoringApprovalModal] = useState(false);
+    const [showQualityApprovalModal, setShowQualityApprovalModal] = useState(false);
+    const [showNocApprovalModal, setShowNocApprovalModal] = useState(false);
+    const [showConselhoApprovalModal, setShowConselhoApprovalModal] = useState(false);
+    const [approvalItem, setApprovalItem] = useState(null);
+
     // Efeito para escutar dados em tempo real
     useEffect(() => {
         const unsubscribe = subscribeDashboardData(
@@ -94,9 +104,7 @@ const DashboardPage = () => {
         if (!data || !Array.isArray(data)) return [];
 
         let filteredData;
-
         if (activeFilter === "Clientes Varejo") {
-            // Agrega clientes do array Clientesafetados (Varejo)
             let aggregatedClients = [];
             data.forEach((doc) => {
                 if (doc.status === "Ativos" && Array.isArray(doc.Clientesafetados)) {
@@ -118,7 +126,6 @@ const DashboardPage = () => {
             let aggregatedB2B = [];
             data.forEach((doc) => {
                 if (doc.status === "Ativos" && (doc.emailB2B !== false || doc.digisac !== false)) {
-                    // Definindo o nome: prioriza emailB2B se existir, senão utiliza digisac
                     let nomeB2B = "—";
                     if (Array.isArray(doc.emailB2B) && doc.emailB2B.length > 0) {
                         nomeB2B = doc.emailB2B[0].Nome || doc.emailB2B[0].name || "—";
@@ -136,11 +143,9 @@ const DashboardPage = () => {
             });
             filteredData = aggregatedB2B;
         } else {
-            // Filtro normal por status
             filteredData = data.filter((item) => item.status === activeFilter);
         }
 
-        // Filtro de busca (pesquisa por protocolo, regional ou nome)
         if (search) {
             filteredData = filteredData.filter(
                 (item) =>
@@ -154,7 +159,7 @@ const DashboardPage = () => {
 
     // CONTADORES (Cards)
     const containers = [
-        { title: "Requisição", icon: BellDot, value: counts?.Requisicao || 0 },
+        { title: "Requisição", icon: BellDot, value: counts?.["Requisição"] || 0 },
         { title: "Analise", icon: Activity, value: counts?.Analise || 0 },
         { title: "Reagendado", icon: Calendar, value: counts?.Reagendado || 0 },
         { title: "Pendente", icon: Clock, value: counts?.Pendente || 0 },
@@ -163,7 +168,7 @@ const DashboardPage = () => {
         { title: "Clientes B2B", icon: UserX2Icon, value: counts?.ClientesB2B || 0 },
     ];
 
-    // AÇÕES
+    // AÇÕES EXISTENTES
     const handleEdit = (idProtocolo) => navigate(`/visualizacao/${idProtocolo}`);
     const handleDelete = (item) => {
         setModalData(item);
@@ -232,6 +237,43 @@ const DashboardPage = () => {
     // Identifica se estamos na aba Clientes B2B
     const isB2B = activeFilter === "Clientes B2B";
 
+    // ===============================
+    // FLUXO DE APROVAÇÃO (Requisição)
+    // ===============================
+
+    // Função auxiliar para atualizar o item na lista
+    const updateItem = (updatedItem) => {
+        setData((prev) => prev.map((doc) => (doc.id === updatedItem.id ? updatedItem : doc)));
+    };
+
+    // Handlers para Monitoramento
+    const handleOpenMonitoringApproval = (item) => {
+        setApprovalItem(item);
+        setShowMonitoringApprovalModal(true);
+    };
+
+    // Handlers para Qualidade
+    const handleOpenQualityApproval = (item) => {
+        setApprovalItem(item);
+        setShowQualityApprovalModal(true);
+    };
+    const handleQualityApproval = (item) => {
+        const updatedItem = { ...item, qualidade: "Aprova" };
+        updateItem(updatedItem);
+        toast.success("Aprovado em Qualidade!");
+    };
+
+    // Handlers para NOC
+    const handleOpenNocApproval = (item) => {
+        setApprovalItem(item);
+        setShowNocApprovalModal(true);
+    };
+    // Handlers para Conselho
+    const handleOpenConselhoApproval = (item) => {
+        setApprovalItem(item);
+        setShowConselhoApprovalModal(true);
+    };
+
     return (
         <div className="min-h-screen w-full bg-inherit text-slate-100">
             {/* Cabeçalho */}
@@ -298,9 +340,7 @@ const DashboardPage = () => {
                         <div className="relative h-[500px] w-full overflow-auto">
                             {activeFilter.startsWith("Clientes") ? (
                                 activeFilter === "Clientes B2B" ? (
-                                    /* ===========================
-                     Tabela de Clientes B2B
-                     =========================== */
+                                    /* Tabela de Clientes B2B */
                                     <table className="w-full table-auto text-sm">
                                         <thead className="bg-inherit text-gray-900 dark:text-gray-100">
                                             <tr>
@@ -318,9 +358,7 @@ const DashboardPage = () => {
                                                         key={`b2b-${index}`}
                                                         className="hover:bg-gray-100 dark:hover:bg-gray-800"
                                                     >
-                                                        {/* Nome do grupo, extraído em aggregatedB2B */}
                                                         <td className="px-4 py-2 text-center text-black dark:text-white">{item.nome || "—"}</td>
-                                                        {/* Coluna Email B2B */}
                                                         <td className="px-4 py-2 text-center text-black dark:text-white">
                                                             {Array.isArray(item.emailB2B) && item.emailB2B.length > 0 ? (
                                                                 <span>{item.emailB2B[0].Nome || item.emailB2B[0].name || "—"}</span>
@@ -328,7 +366,6 @@ const DashboardPage = () => {
                                                                 <span className="text-yellow-500">Não habilitado</span>
                                                             )}
                                                         </td>
-                                                        {/* Coluna Digisac - agora verifica checkTelefone ou checkEmail */}
                                                         <td className="px-4 py-2 text-center text-black dark:text-white">
                                                             <div className="flex items-center justify-center">
                                                                 {Array.isArray(item.digisac) && item.digisac.length > 0 ? (
@@ -348,7 +385,6 @@ const DashboardPage = () => {
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-4 py-2 text-center text-black dark:text-white">{item.protocolo || "—"}</td>
                                                         <td className="px-4 py-2 text-center text-black dark:text-white">{item.tipo || "—"}</td>
                                                     </tr>
@@ -366,9 +402,7 @@ const DashboardPage = () => {
                                         </tbody>
                                     </table>
                                 ) : (
-                                    /* ==============================
-                     Tabela de Clientes Varejo
-                     ============================== */
+                                    /* Tabela de Clientes Varejo */
                                     <table className="w-full table-auto text-sm">
                                         <thead className="bg-inherit text-gray-900 dark:text-gray-100">
                                             <tr>
@@ -439,9 +473,7 @@ const DashboardPage = () => {
                                     </table>
                                 )
                             ) : (
-                                /* ===================
-                   Tabela de Protocolos
-                   =================== */
+                                /* Tabela de Protocolos */
                                 <table className="w-full table-auto text-sm">
                                     <thead className="bg-inherit text-gray-900 dark:text-gray-100">
                                         <tr>
@@ -489,7 +521,7 @@ const DashboardPage = () => {
                                                                         : "—"}
                                                                 </span>
                                                             )}
-                                                            {item.tipo === "Evento" ? (
+                                                            {item.tipo === "Evento" || item.tipo === "Requisição" ? (
                                                                 <span className="text-sm text-gray-600 dark:text-gray-400">
                                                                     {item.horarioPrevisto
                                                                         ? new Date(item.horarioPrevisto).toLocaleString("pt-BR", {
@@ -505,7 +537,7 @@ const DashboardPage = () => {
                                                                               dateStyle: "short",
                                                                               timeStyle: "short",
                                                                           })
-                                                                        : "—"}
+                                                                        : ""}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -525,9 +557,7 @@ const DashboardPage = () => {
                                                                 <SendIcon size={20} />
                                                             </button>
                                                             <div>
-                                                                {Array.isArray(item.digisac) &&
-                                                                item.digisac.length > 0 &&
-                                                                item.digisac[0].checkTelefone ? (
+                                                                {item.digisacCheck ? (
                                                                     <CheckCheck
                                                                         size={20}
                                                                         className="text-green-500"
@@ -541,6 +571,7 @@ const DashboardPage = () => {
                                                             </div>
                                                         </div>
                                                     </td>
+
                                                     {/* Email B2B */}
                                                     <td className="px-4 py-2 text-center">
                                                         <div className="flex items-center justify-center space-x-2">
@@ -551,9 +582,7 @@ const DashboardPage = () => {
                                                                 <MailCheckIcon size={20} />
                                                             </button>
                                                             <div>
-                                                                {Array.isArray(item.emailB2B) &&
-                                                                item.emailB2B.length > 0 &&
-                                                                item.emailB2B[0].checkEmail ? (
+                                                                {item.emailb2bCheck ? (
                                                                     <CheckCheck
                                                                         size={20}
                                                                         className="text-green-500"
@@ -567,6 +596,7 @@ const DashboardPage = () => {
                                                             </div>
                                                         </div>
                                                     </td>
+
                                                     {/* WhatsApp */}
                                                     <td className="px-4 py-2 text-center">
                                                         <div className="flex items-center justify-center space-x-2">
@@ -676,6 +706,43 @@ const DashboardPage = () => {
                                                             >
                                                                 <Trash size={20} />
                                                             </button>
+                                                            {/* Fluxo de Aprovação para Requisição */}
+                                                            {item.status === "Requisição" && (
+                                                                <div className="mt-2 flex flex-col space-y-1">
+                                                                    {!item.monitoramento && (
+                                                                        <button
+                                                                            onClick={() => handleOpenMonitoringApproval(item)}
+                                                                            className="rounded bg-blue-100 px-2 py-1 text-sm text-blue-600"
+                                                                        >
+                                                                            Monitoramento
+                                                                        </button>
+                                                                    )}
+                                                                    {item.monitoramento === "Aprova" && !item.qualidade && (
+                                                                        <button
+                                                                            onClick={() => handleOpenQualityApproval(item)}
+                                                                            className="rounded bg-green-100 px-2 py-1 text-sm text-green-600"
+                                                                        >
+                                                                            Qualidade
+                                                                        </button>
+                                                                    )}
+                                                                    {item.monitoramento === "Aprova" && item.qualidade === "Aprova" && !item.noc && (
+                                                                        <button
+                                                                            onClick={() => handleOpenNocApproval(item)}
+                                                                            className="rounded bg-orange-100 px-2 py-1 text-sm text-orange-600"
+                                                                        >
+                                                                            NOC
+                                                                        </button>
+                                                                    )}
+                                                                    {item.conselho === "Pendente" && (
+                                                                        <button
+                                                                            onClick={() => handleOpenConselhoApproval(item)}
+                                                                            className="rounded bg-purple-100 px-2 py-1 text-sm text-purple-600"
+                                                                        >
+                                                                            Conselho
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -707,11 +774,9 @@ const DashboardPage = () => {
                 >
                     Anterior
                 </button>
-
                 <span className="text-lg font-semibold text-slate-900 dark:text-slate-50">
                     Página {currentPage} de {totalPages}
                 </span>
-
                 <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
@@ -822,6 +887,54 @@ const DashboardPage = () => {
                     setShowNewActionModal(false);
                     toast.success("Nova ação realizada com sucesso!");
                 }}
+            />
+
+            <MonitoringApprovalModal
+                isVisible={showMonitoringApprovalModal}
+                docId={approvalItem?.id} // Usa o ID real do documento da coleção "Requisição"
+                title="Aprovação de Monitoramento"
+                message="Deseja aprovar este documento para Monitoramento?"
+                onSuccess={() => {
+                    // Aqui, você pode atualizar o estado local ou disparar um listener que atualize os dados
+                    setShowMonitoringApprovalModal(false);
+                }}
+                onCancel={() => setShowMonitoringApprovalModal(false)}
+            />
+
+            <QualityApprovalModal
+                isVisible={showQualityApprovalModal}
+                docId={approvalItem?.id} // usa o ID real do documento, por exemplo, approvalItem.id
+                title="Aprovação de Qualidade"
+                message="Deseja aprovar este documento para Qualidade?"
+                onSuccess={() => {
+                    handleQualityApproval(approvalItem);
+                    setShowQualityApprovalModal(false);
+                }}
+                onCancel={() => setShowQualityApprovalModal(false)}
+            />
+
+            <NocApprovalModal
+                isVisible={showNocApprovalModal}
+                docId={approvalItem?.id} // Certifique-se de que este é o ID correto do documento na coleção "Requisição"
+                title="Aprovação NOC"
+                message="Deseja aprovar este documento para NOC ou cadastrar clientes?"
+                onSuccess={() => {
+                    setShowNocApprovalModal(false);
+                    // Listener do Firebase atualizará a UI conforme o novo status "Pendente"
+                }}
+                onCancel={() => setShowNocApprovalModal(false)}
+            />
+
+            <ConselhoApprovalModal
+                isVisible={showConselhoApprovalModal}
+                docId={approvalItem?.id} // ID do documento na coleção "Requisição"
+                title="Aprovação Conselho"
+                message="Deseja aprovar este documento via Conselho?"
+                onSuccess={() => {
+                    setShowConselhoApprovalModal(false);
+                    // O listener do Firebase atualizará a UI com o novo status "Pendente"
+                }}
+                onCancel={() => setShowConselhoApprovalModal(false)}
             />
 
             <Footer />

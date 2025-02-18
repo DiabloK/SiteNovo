@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getAuth,
@@ -25,26 +25,36 @@ const LoginPage = ({ setIsAuthenticated }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const persistence = rememberMe
-        ? browserLocalPersistence
-        : browserSessionPersistence;
+      const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
       await setPersistence(auth, persistence);
-
+  
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      if (!user.emailVerified) {
+  
+      // Força a atualização dos dados do usuário e do token
+      await user.reload();
+      await user.getIdToken(true);
+  
+      const currentUser = auth.currentUser;
+      console.log("Email verified:", currentUser.emailVerified);
+  
+      if (!currentUser.emailVerified) {
         alert("Por favor, verifique seu email antes de continuar.");
+        await auth.signOut();
         return;
       }
-
+  
+      console.log("Usuário autenticado, redirecionando...");
+      navigate("/", { replace: true });
       setIsAuthenticated(true);
-      navigate("/");
+
     } catch (error) {
       console.error("Erro ao fazer login:", error);
       alert("Erro ao fazer login. Verifique as credenciais.");
     }
   };
+  
+  
 
   const handleResetPassword = async (e) => {
     e.preventDefault();

@@ -3,174 +3,213 @@ import { db } from "@/utils/firebase";
 
 // Função para observar os dados do Firestore em tempo real
 export const fetchDashboardData = (callback, errorCallback) => {
-    const collections = ["Analise", "Ativos", "Pendente", "Reagendado"];
-    const unsubscribes = [];
-    const dataCounts = {}; // Contadores por coleção
-    let allData = []; // Dados combinados de todas as coleções
+  const collections = ["Requisição", "Analise", "Ativos", "Pendente", "Reagendado"];
 
-    // Para cada coleção, criamos um listener que atualiza os dados
-    collections.forEach((col) => {
-        const colRef = collection(db, col);
-        const unsubscribe = onSnapshot(
-            colRef,
-            (snapshot) => {
-                // Atualiza o contador para esta coleção
-                dataCounts[col] = snapshot.size;
+  const unsubscribes = [];
+  const dataCounts = {}; // Contadores por coleção
+  let allData = []; // Dados combinados de todas as coleções
 
-                // Processa os documentos desta coleção
-                const colData = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
+  // Para cada coleção, criamos um listener que atualiza os dados
+  collections.forEach((col) => {
+    const colRef = collection(db, col);
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        // Atualiza o contador para esta coleção
+        dataCounts[col] = snapshot.size;
 
-                    colData.push({
-                        id: doc.id,
-                        tipo: col,
-                        status: data.status || "indefinido",
-                        protocoloISP: data.protocoloISP || "—",
-                        horarioInicial: data.horarioInicial || null,
-                        horarioPrevisto: data.horarioPrevisto || null,
-                        email: data.email || false,
-                        whatzap: data.whatzap || false,
-                        regional: data.regional || "—",
-                        // Inclua outros campos conforme necessário
-                        ...data,
-                    });
-                });
+        // Processa os documentos desta coleção
+        const colData = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
 
-                // Atualiza os dados: remove os itens da coleção atual (caso já existam) e adiciona os novos
-                const otherData = allData.filter((item) => item.tipo !== col);
-                allData = [...otherData, ...colData];
+          // Unifica protocolo (lê tanto protocoloISP quanto ispProtocolo)
+          const protocolValue = data.protocoloISP || data.ispProtocolo || "—";
 
-                // Chama o callback para atualizar os estados do componente
-                callback({ counts: { ...dataCounts }, data: [...allData] });
-            },
-            (error) => {
-                console.error(`Erro ao escutar a coleção ${col}:`, error);
-                if (errorCallback) errorCallback(error);
-            },
-        );
-        unsubscribes.push(unsubscribe);
-    });
+          colData.push({
+            id: doc.id,
+            tipo: col,
+            status: data.status || "indefinido",
+            // Agora sempre teremos 'protocolo' e 'protocoloISP' com o mesmo valor
+            protocolo: protocolValue,
+            protocoloISP: protocolValue,
+            horarioInicial: data.horarioInicial || null,
+            horarioPrevisto: data.horarioPrevisto || null,
+            email: data.email || false,
+            whatzap: data.whatzap || false,
+            regional: data.regional || "—",
+            // Inclua outros campos conforme necessário
+            ...data,
+          });
+        });
 
-    // Retorna uma função que cancela todos os listeners quando necessário
-    return () => {
-        unsubscribes.forEach((unsubscribe) => unsubscribe());
-    };
+        // Atualiza os dados: remove os itens da coleção atual (caso já existam) e adiciona os novos
+        const otherData = allData.filter((item) => item.tipo !== col);
+        allData = [...otherData, ...colData];
+
+        // Chama o callback para atualizar os estados do componente
+        callback({ counts: { ...dataCounts }, data: [...allData] });
+      },
+      (error) => {
+        console.error(`Erro ao escutar a coleção ${col}:`, error);
+        if (errorCallback) errorCallback(error);
+      },
+    );
+    unsubscribes.push(unsubscribe);
+  });
+
+  // Retorna uma função que cancela todos os listeners quando necessário
+  return () => {
+    unsubscribes.forEach((unsubscribe) => unsubscribe());
+  };
 };
 
 export const subscribeDashboardData = (callback, errorCallback) => {
-    const collections = ["Analise", "Ativos", "Pendente", "Reagendado"];
+    const collections = ["Requisição", "Analise", "Ativos", "Pendente", "Reagendado"];
     const unsubscribes = [];
     const dataMap = new Map();
     const counts = {};
-
+  
     collections.forEach((col) => {
-        const colRef = collection(db, col);
-        const unsubscribe = onSnapshot(
-            colRef,
-            (snapshot) => {
-                counts[col] = snapshot.size;
-
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-
-                    // Clientes afetados
-                    const clientesValue =
-                        data.total_afetados !== undefined && data.total_afetados !== null
-                            ? Number(data.total_afetados)
-                            : Array.isArray(data.Clientesafetados)
-                              ? data.Clientesafetados.length
-                              : 0;
-
-                    // Para emailB2B: se não houver dado, interpretamos como false;
-                    // se houver, esperamos que seja um array de objetos.
-                    let emailB2BValue = false;
-                    if (data.emailB2B === false || data.emailB2B === "false") {
-                        emailB2BValue = false;
-                    } else if (Array.isArray(data.emailB2B)) {
-                        emailB2BValue = data.emailB2B.length > 0 ? data.emailB2B : false;
-                    } else {
-                        // Caso venha como string diferente de "false"
-                        emailB2BValue = data.emailB2B !== "false" ? [{ name: data.emailB2B }] : false;
-                    }
-
-                    // Para digisac: mesma lógica
-                    let digisacValue = false;
-                    if (data.digisac === false || data.digisac === "false") {
-                        digisacValue = false;
-                    } else if (Array.isArray(data.digisac)) {
-                        digisacValue = data.digisac.length > 0 ? data.digisac : false;
-                    } else {
-                        digisacValue = data.digisac !== "false" ? [{ name: data.digisac }] : false;
-                    }
-
-                    // Normaliza a cidade a partir de localOcorrencia
-                    let cityName = "—";
-                    if (Array.isArray(data.localOcorrencia) && data.localOcorrencia.length > 0) {
-                        cityName = data.localOcorrencia.map((loc) => loc.nome).join(", ");
-                    }
-
-                    // Se o campo emailB2B for um array de objetos, tentamos extrair um nome para exibição:
-                    let nomeB2B = "—";
-                    if (Array.isArray(emailB2BValue) && emailB2BValue.length > 0 && typeof emailB2BValue[0] === "object") {
-                        nomeB2B = emailB2BValue[0].name || "—";
-                    }
-
-                    dataMap.set(doc.id, {
-                        id: doc.id,
-                        tipo: col,
-                        status: data.status || "indefinido",
-                        protocoloISP: data.protocoloISP || "—",
-                        horarioInicial: data.horarioInicial || null,
-                        horarioPrevisto: data.horarioPrevisto || null,
-                        clientesAfetados: clientesValue,
-                        email: data.email || false,
-                        whatzap: data.whatzap || false,
-                        regional: data.regional || "—",
-                        city: cityName,
-                        // Guardamos os campos conforme já convertidos:
-                        emailB2B: emailB2BValue,
-                        digisac: digisacValue,
-                        // Para exibição na tabela B2B:
-                        nomeB2B,
-                        ...data,
-                    });
-                });
-
-                const currentDocIds = new Set(snapshot.docs.map((doc) => doc.id));
-                for (const [id, item] of dataMap.entries()) {
-                    if (item.tipo === col && !currentDocIds.has(id)) {
-                        dataMap.delete(id);
-                    }
-                }
-
-                // Contadores
-                const totalClientesAfetados = Array.from(dataMap.values())
-                    .filter((item) => item.status === "Ativos")
-                    .reduce((acc, item) => acc + (Number(item.clientesAfetados) || 0), 0);
-                counts.ClientesAfetados = totalClientesAfetados;
-
-                // Conte apenas documentos ativos com emailB2B !== false
-                // Conte documentos ativos que tenham emailB2B OU digisac habilitado
-                const totalClientesB2B = Array.from(dataMap.values()).filter(
-                    (item) => item.status === "Ativos" && (item.emailB2B !== false || item.digisac !== false),
-                ).length;
-                counts.ClientesB2B = totalClientesB2B;
-
-                callback({
-                    counts: { ...counts },
-                    data: Array.from(dataMap.values()),
-                });
-            },
-            (error) => {
-                console.error(`Erro ao escutar a coleção ${col}:`, error);
-                if (errorCallback) errorCallback(error);
-            },
-        );
-        unsubscribes.push(unsubscribe);
+      const colRef = collection(db, col);
+      const unsubscribe = onSnapshot(
+        colRef,
+        (snapshot) => {
+          counts[col] = snapshot.size;
+  
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+  
+            // 1) Unifica horárioInicial e horárioPrevisto
+            let horarioInicial = data.horarioInicial || null;
+            let horarioPrevisto = data.horarioPrevisto || null;
+  
+            // Se vier de "Requisição", usamos somente dataPrevista1/horaInicio e ignoramos horárioPrevisto
+            if (col === "Requisição") {
+              if (data.dataPrevista1 && data.horaInicio) {
+                horarioInicial = new Date(`${data.dataPrevista1}T${data.horaInicio}:00`).toISOString();
+              }
+              // Definimos o horário previsto como null para documentos de Requisição
+              horarioPrevisto = null;
+            } else {
+              // Para as outras coleções, se não houver horárioInicial, tenta montar a partir de dataPrevista1 e horaInicio
+              if (!horarioInicial && data.dataPrevista1 && data.horaInicio) {
+                horarioInicial = new Date(`${data.dataPrevista1}T${data.horaInicio}:00`).toISOString();
+              }
+              if (!horarioPrevisto && data.dataPrevista2 && data.horaFim) {
+                horarioPrevisto = new Date(`${data.dataPrevista2}T${data.horaFim}:00`).toISOString();
+              }
+            }
+  
+            // 2) Unifica city (ex.: localOcorrencia, cidadesAfetadas ou campo cidade)
+            let cityName = "—";
+            if (Array.isArray(data.localOcorrencia) && data.localOcorrencia.length > 0) {
+              cityName = data.localOcorrencia.map((loc) => loc.nome).join(", ");
+            } else if (Array.isArray(data.cidadesAfetadas) && data.cidadesAfetadas.length > 0) {
+              cityName = data.cidadesAfetadas.map((loc) => loc.nome).join(", ");
+            } else if (data.cidade) {
+              cityName = data.cidade;
+            }
+  
+            // 3) Unifica clientesAfetados
+            let clientesValue = 0;
+            if (data.total_afetados !== undefined && data.total_afetados !== null) {
+              clientesValue = Number(data.total_afetados);
+            } else if (Array.isArray(data.Clientesafetados)) {
+              clientesValue = data.Clientesafetados.length;
+            } else if (Array.isArray(data.cidadesAfetadas)) {
+              clientesValue = data.cidadesAfetadas.length;
+            }
+  
+            // 4) Unifica emailB2B e digisac
+            let emailB2BValue = false;
+            if (data.emailB2B === false || data.emailB2B === "false") {
+              emailB2BValue = false;
+            } else if (Array.isArray(data.emailB2B)) {
+              emailB2BValue = data.emailB2B.length > 0 ? data.emailB2B : false;
+            } else {
+              emailB2BValue = data.emailB2B !== "false" ? [{ name: data.emailB2B }] : false;
+            }
+  
+            let digisacValue = false;
+            if (data.digisac === false || data.digisac === "false") {
+              digisacValue = false;
+            } else if (Array.isArray(data.digisac)) {
+              digisacValue = data.digisac.length > 0 ? data.digisac : false;
+            } else {
+              digisacValue = data.digisac !== "false" ? [{ name: data.digisac }] : false;
+            }
+  
+            // Unifica protocolo (lê tanto protocoloISP quanto ispProtocolo)
+            const protocolValue = data.protocoloISP || data.ispProtocolo || "—";
+  
+            // Monta objeto final padronizado
+            dataMap.set(doc.id, {
+              id: doc.id,
+              tipo: col, // Coleção de origem
+              status: data.status || "indefinido",
+  
+              // Horários unificados
+              horarioInicial,
+              horarioPrevisto,
+  
+              // Cidade unificada
+              city: cityName,
+  
+              // Contagem de clientes afetados
+              clientesAfetados: clientesValue,
+  
+              // E-mail e WhatsApp "sim/não"
+              email: data.email || false,
+              whatzap: data.whatzap || false,
+  
+              // Email B2B e digisac
+              emailB2B: emailB2BValue,
+              digisac: digisacValue,
+  
+              // Protocolo unificado
+              protocolo: protocolValue,
+              protocoloISP: protocolValue,
+  
+              // Mantenha o resto do data
+              ...data,
+            });
+          });
+  
+          // Remove docs que foram excluídos
+          const currentDocIds = new Set(snapshot.docs.map((doc) => doc.id));
+          for (const [id, item] of dataMap.entries()) {
+            if (item.tipo === col && !currentDocIds.has(id)) {
+              dataMap.delete(id);
+            }
+          }
+  
+          // Atualiza contadores
+          const totalClientesAfetados = Array.from(dataMap.values())
+            .filter((item) => item.status === "Ativos")
+            .reduce((acc, item) => acc + (Number(item.clientesAfetados) || 0), 0);
+          counts.ClientesAfetados = totalClientesAfetados;
+  
+          const totalClientesB2B = Array.from(dataMap.values()).filter(
+            (item) => item.status === "Ativos" && (item.emailB2B !== false || item.digisac !== false)
+          ).length;
+          counts.ClientesB2B = totalClientesB2B;
+  
+          callback({
+            counts: { ...counts },
+            data: Array.from(dataMap.values()),
+          });
+        },
+        (error) => {
+          console.error(`Erro ao escutar a coleção ${col}:`, error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+      unsubscribes.push(unsubscribe);
     });
-
+  
     return () => {
-        unsubscribes.forEach((unsubscribe) => unsubscribe());
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
-};
+  };
+  
